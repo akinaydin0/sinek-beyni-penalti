@@ -16,6 +16,8 @@ sys.dont_write_bytecode = True
 
 
 def oku(p):
+    if not p:
+        return None
     try:
         with open(p, encoding="utf-8") as f:
             return json.load(f)
