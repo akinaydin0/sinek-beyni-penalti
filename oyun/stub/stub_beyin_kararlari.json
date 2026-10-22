@@ -1,0 +1,17 @@
+{
+  "STUB": "BU DOSYA SAHTE (stub). Sinek beyni calistirilmadi. Sadece oyun/godot/blender gelistirme icin.",
+  "stub": true,
+  "prova": true,
+  "model": "STUB - Shiu et al. 2024 LIF (Brian2), FlyWire v783 DEGIL, elle yazilmis gelistirme girdisi",
+  "readout_frozen_at": null,
+  "readout_sha256": null,
+  "readout": "stub",
+  "calibration": {},
+  "kicks": [
+    {"n": 1, "trial_seed": 1001, "scene": {"keeper_x": 0.0},  "counts": {}, "steer": -0.42, "power_spikes": 17, "aim": {"x": -2.90, "y": 0.90}, "speed_mps": 24.3, "decision_ms": 380},
+    {"n": 2, "trial_seed": 1002, "scene": {"keeper_x": 0.25}, "counts": {}, "steer": 0.05,  "power_spikes": 6,  "aim": {"x": 0.35,  "y": 0.60}, "speed_mps": 14.0, "decision_ms": 410},
+    {"n": 3, "trial_seed": 1003, "scene": {"keeper_x": 0.0},  "counts": {}, "steer": 0.71,  "power_spikes": 21, "aim": {"x": 3.30,  "y": 2.15}, "speed_mps": 27.5, "decision_ms": 355},
+    {"n": 4, "trial_seed": 1004, "scene": {"keeper_x": -0.2}, "counts": {}, "steer": -0.93, "power_spikes": 19, "aim": {"x": -4.10, "y": 0.70}, "speed_mps": 25.0, "decision_ms": 395},
+    {"n": 5, "trial_seed": 1005, "scene": {"keeper_x": 0.0},  "counts": {}, "steer": 0.30,  "power_spikes": 12, "aim": {"x": 1.60,  "y": 2.80}, "speed_mps": 21.0, "decision_ms": 402}
+  ]
+}

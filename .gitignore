@@ -1,0 +1,13 @@
+# [tur3b 2026-10-22]
+# beyin ortamı (araclar/kur.py kurar) ve indirilen model verisi (araclar/veri_indir.py indirir)
+beyin/.venv/
+beyin/indirilen/*
+!beyin/indirilen/BURAYA_INDIRILIR.md
+__pycache__/
+*.pyc
+*.part
+# CI / yerel çıktılar
+/ci_cikti/
+/sonuc_*.json
+/verify_*.txt
+.DS_Store

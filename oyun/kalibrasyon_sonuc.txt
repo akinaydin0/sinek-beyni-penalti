@@ -1,0 +1,46 @@
+# kalibrasyon.py çıktısı (PROVA kontrolü) — varsayılan model (temas = kurtarış, brief kuralı)
+kaleci: tepki 0.248 s | dalış hızı 4.20 m/s | tam uzanma erişimi 2.90 m | merkeze çekilme %40
+
+Bar-Eli koşullu kurtarış oranları (model / gerçek), hücre başına 200 isabetli şut:
+  vuruş left   | kaleci left  : model % 51.5   gerçek % 29.6   (n_gerçek=54)
+  vuruş left   | kaleci stay  : model %  0.0   gerçek %  0.0   (n_gerçek=1)
+  vuruş left   | kaleci right : model %  0.0   gerçek %  0.0   (n_gerçek=37)
+  vuruş centre | kaleci left  : model % 15.0   gerçek %  9.8   (n_gerçek=41)
+  vuruş centre | kaleci stay  : model % 50.5   gerçek % 60.0   (n_gerçek=10)
+  vuruş centre | kaleci right : model % 18.0   gerçek %  3.2   (n_gerçek=31)
+  vuruş right  | kaleci left  : model %  0.0   gerçek %  0.0   (n_gerçek=46)
+  vuruş right  | kaleci stay  : model %  0.5   gerçek %  0.0   (n_gerçek=7)
+  vuruş right  | kaleci right : model % 49.5   gerçek % 25.4   (n_gerçek=59)
+  Bar-Eli ağırlıklı genel: model %25.8   gerçek %14.7   (Hunter 2018: %16,5)
+
+Kurtarış haritası: 24 m/s, kaleci ortada, seed'den gelen gerçek plan dağılımı, hücre başına 60 çekiliş
+(x+ = kalecinin solu; satırlar yükseklik, m)
+  y\x    -3.3   -2.5   -1.5   -0.5    0.5    1.5    2.5    3.3
+   2.2     0%    10%    12%    13%    17%    20%    13%     0%
+   1.7     0%    35%    12%    12%    15%    20%    42%     0%
+   1.0     0%    38%    37%    45%    53%    45%    50%     0%
+   0.3     0%    22%    12%     0%     2%    22%    40%     0%
+
+# aynı, isteğe bağlı Hunter (2018) menzil-içi kurtarış olasılığı AÇIK
+kaleci: tepki 0.248 s | dalış hızı 4.20 m/s | tam uzanma erişimi 2.90 m | merkeze çekilme %40
+değiştirilen: ['keeper_model.in_reach_save_model={"a":-0.0447,"b":1.72}']
+
+Bar-Eli koşullu kurtarış oranları (model / gerçek), hücre başına 200 isabetli şut:
+  vuruş left   | kaleci left  : model % 36.0   gerçek % 29.6   (n_gerçek=54)
+  vuruş left   | kaleci stay  : model %  0.0   gerçek %  0.0   (n_gerçek=1)
+  vuruş left   | kaleci right : model %  0.0   gerçek %  0.0   (n_gerçek=37)
+  vuruş centre | kaleci left  : model %  8.5   gerçek %  9.8   (n_gerçek=41)
+  vuruş centre | kaleci stay  : model % 32.5   gerçek % 60.0   (n_gerçek=10)
+  vuruş centre | kaleci right : model %  9.5   gerçek %  3.2   (n_gerçek=31)
+  vuruş right  | kaleci left  : model %  0.0   gerçek %  0.0   (n_gerçek=46)
+  vuruş right  | kaleci stay  : model %  0.5   gerçek %  0.0   (n_gerçek=7)
+  vuruş right  | kaleci right : model % 35.0   gerçek % 25.4   (n_gerçek=59)
+  Bar-Eli ağırlıklı genel: model %17.4   gerçek %14.7   (Hunter 2018: %16,5)
+
+Kurtarış haritası: 24 m/s, kaleci ortada, seed'den gelen gerçek plan dağılımı, hücre başına 60 çekiliş
+(x+ = kalecinin solu; satırlar yükseklik, m)
+  y\x    -3.3   -2.5   -1.5   -0.5    0.5    1.5    2.5    3.3
+   2.2     0%    10%    12%    10%    10%    15%    12%     0%
+   1.7     0%    33%    12%     8%     8%    15%    30%     0%
+   1.0     0%    37%    35%    40%    37%    32%    35%     0%
+   0.3     0%    22%    12%     0%     2%    17%    27%     0%

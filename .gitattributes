@@ -1,0 +1,6 @@
+# [tur3b 2026-10-22] Satır sonlarına DOKUNMA. Taahhüde giren dosyalar SHA-256 ile kontrol edilir; Windows'ta git
+# (core.autocrlf=true) LF'yi CRLF'ye çevirirse özetler tutmaz ve doğrulama "kod değişmiş" der.
+# "-text": git hiçbir dosyada satır sonu dönüşümü yapmaz; dosyalar depodaki baytlarıyla iner.
+* -text
+*.npz binary
+*.parquet binary

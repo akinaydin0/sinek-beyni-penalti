@@ -1,0 +1,24 @@
+{
+  "what": "fast wrapper vs original Shiu run_exp, sugar GRN -> MN9, v783",
+  "conditions": {
+    "wrapper_100Hz": {
+      "mn9_rate_hz_mean": 67.6,
+      "mn9_rate_hz_sd": 4.818069437383429,
+      "active_neurons_union": 393,
+      "trial_s_mean": 2.7801858556681665
+    },
+    "wrapper_200Hz": {
+      "mn9_rate_hz_mean": 92.5,
+      "mn9_rate_hz_sd": 4.248732062384145,
+      "active_neurons_union": 444,
+      "trial_s_mean": 2.7959451922054948
+    }
+  },
+  "determinism_same_seed_same_spikes": true,
+  "determinism_sha256": "255af8c040d602d622870b261903e6f2576e6df45c91d11c65a183a286aad8c0",
+  "original_run_exp_100Hz": 67.13333333333334,
+  "repo_reference_v630": {
+    "sugarR_630_repo_100Hz": 67.03333333333333,
+    "sugarR_630_repo_default": 93.26666666666667
+  }
+}

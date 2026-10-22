@@ -1,0 +1,10 @@
+{
+  "readout_sha256": "e0ff656deddd74430262a8b5b272ca9842ae75a2f9b8a806562cc4e42cdcaa27",
+  "definition": "SHA-256 of the bytes of esleme.py followed by the bytes of ids.json (cat esleme.py ids.json | shasum -a 256)",
+  "files_sha256": {
+    "esleme.py": "8835df240ba4231769c3d09f5d96c52f3cc8fb04767ea2e2a49e9bcda39fe8b9",
+    "ids.json": "adb2f568ccc55f5a46c5939b80c09e9ef7d77a34305012f64c1a1c9129242bec"
+  },
+  "readout_frozen_at": "2026-10-22T05:19:18+00:00",
+  "note": "Frozen after the direction-blind pilot (veri/pilot.json) and BEFORE calibration."
+}

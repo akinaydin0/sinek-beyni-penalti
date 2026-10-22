@@ -1,0 +1,149 @@
+# [tur3b 2026-10-22] Üç işletim sisteminde: kur -> veri indir + SHA-256 -> testler -> prova5'i beyin yeniden koşusuyla
+# doğrula -> spike'lar Mac referansıyla bit bit aynı mı? Ayrıca tanı: Brian2 numpy hedefiyle aynı mı, süreler.
+name: dogrulama
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dogrula:
+    name: ${{ matrix.ad }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        # boşluklu ve Türkçe karakterli yol: Windows'taki yol tuzaklarını da dener
+        working-directory: "sinek deneme ç"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            ad: windows
+            bpy: beyin/.venv/Scripts/python.exe
+          - os: macos-latest
+            ad: macos
+            bpy: beyin/.venv/bin/python
+          - os: ubuntu-latest
+            ad: linux
+            bpy: beyin/.venv/bin/python
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          path: "sinek deneme ç"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.10"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: ortam bilgisi (satır sonu ayarı dahil)
+        shell: bash
+        run: |
+          python -c "import platform,sys,locale;print(platform.platform(), sys.version, 'locale:', locale.getpreferredencoding(False))"
+          node --version
+          echo "git core.autocrlf = $(git config --get core.autocrlf || echo yok)"
+          echo "çalışma klasörü: $PWD"
+          mkdir -p ci_cikti
+
+      # README'deki komutların aynısı (Windows'ta PowerShell, ötekilerde bash)
+      - name: "1) kur"
+        run: python -I araclar/kur.py
+
+      - name: "2) veri indir + SHA-256"
+        run: python -I araclar/veri_indir.py
+
+      - name: "3) testler"
+        run: python -I araclar/testler.py
+
+      - name: "4) doğrula: prova5, beyin yeniden koşusu dahil"
+        id: dogrula
+        continue-on-error: true
+        run: python -I araclar/dogrula.py --beklenen prova --cikti ci_cikti/verify_${{ matrix.ad }}.txt --json ci_cikti/dogrula_${{ matrix.ad }}.json
+
+      - name: "tanı: cython hedefi (beyin_model.py'nin seçimi), süre ve ilk fark"
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: '"${{ matrix.bpy }}" -I -B araclar/beyin_hedef_olcum.py --hedef degistirme --json ci_cikti/hedef_cython_${{ matrix.ad }}.json'
+
+      - name: "tanı: numpy hedefi (derleyicisiz), Mac'e göre aynı mı ve süre"
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: '"${{ matrix.bpy }}" -I -B araclar/beyin_hedef_olcum.py --hedef numpy --json ci_cikti/hedef_numpy_${{ matrix.ad }}.json'
+
+      - name: "olumsuz deneme: derleyici yokken (beklenen: DOĞRULANAMADI, sessiz geçiş yok)"
+        if: always() && runner.os == 'Linux'
+        continue-on-error: true
+        shell: bash
+        env:
+          CC: /bin/false
+          CXX: /bin/false
+          CYTHON_CACHE_DIR: ${{ runner.temp }}/bos_cython_onbellek
+        run: |
+          set +e
+          python -I araclar/dogrula.py --cikti ci_cikti/negatif_${{ matrix.ad }}.txt --json ci_cikti/negatif_${{ matrix.ad }}.json
+          kod=$?
+          echo "verify çıkış kodu: $kod (1 = DOĞRULANAMADI beklenir)"
+          test "$kod" = "1"
+
+      - name: "benzetim: Türkçe 8-bit yerel ayar (ISO-8859-9, Windows cp1254 gibi 'ş' = 0xFE), .cmd kalkanının Linux eşi"
+        if: always() && runner.os == 'Linux'
+        continue-on-error: true
+        shell: bash
+        run: |
+          sudo localedef -i tr_TR -f ISO-8859-9 tr_TR.ISO-8859-9
+          export LC_ALL=tr_TR.ISO-8859-9
+          beyin/.venv/bin/python -I -c "import locale,sys;print('alt süreç kodlaması:', locale.getpreferredencoding(False), sys.stderr.encoding)"
+          set +e
+          python -I araclar/dogrula.py --cikti ci_cikti/latin5_kalkansiz_${{ matrix.ad }}.txt --json ci_cikti/latin5_kalkansiz_${{ matrix.ad }}.json > /dev/null
+          k1=$?
+          printf '#!/bin/sh\nexec "%s" -X utf8 "$@"\n' "$PWD/beyin/.venv/bin/python" > "$RUNNER_TEMP/py_utf8"
+          chmod +x "$RUNNER_TEMP/py_utf8"
+          python -I araclar/dogrula.py --beyin-python "$RUNNER_TEMP/py_utf8" --cikti ci_cikti/latin5_kalkanli_${{ matrix.ad }}.txt --json ci_cikti/latin5_kalkanli_${{ matrix.ad }}.json > /dev/null
+          k2=$?
+          grep -h "beyin yeniden koşusu başarısız\|SONUÇ:" ci_cikti/latin5_kalkansiz_${{ matrix.ad }}.txt ci_cikti/latin5_kalkanli_${{ matrix.ad }}.txt
+          echo "kalkansız (düz python) çıkış $k1 (beklenen 1: DOĞRULANAMADI) | kalkanlı (-X utf8) çıkış $k2 (beklenen 3: PROVA DOĞRULANDI)"
+          test "$k1" = "1" && test "$k2" = "3"
+
+      - name: özet
+        if: always()
+        shell: bash
+        run: python araclar/ci_ozet.py ci_cikti >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci_cikti_${{ matrix.ad }}
+          path: "sinek deneme ç/ci_cikti/"
+          retention-days: 30
+
+      - name: sonuç (doğrulama tutmadıysa iş KIRMIZI)
+        if: steps.dogrula.outcome != 'success'
+        shell: bash
+        run: |
+          echo "doğrulama beklenen sonucu vermedi: PROVA DOĞRULANDI + 5/5 bit bit aynı DEĞİL"
+          exit 1
+
+  ozet:
+    needs: dogrula
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          path: ci_cikti
+      - name: üç işletim sistemi yan yana
+        run: python3 araclar/ci_ozet.py ci_cikti >> "$GITHUB_STEP_SUMMARY"

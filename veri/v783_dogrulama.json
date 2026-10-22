@@ -1,0 +1,10 @@
+{
+  "official_list": "https://zenodo.org/records/10676866  proofread_root_ids_783.npy",
+  "official_md5": "e0e6c19732fd8c7a4e39a2d170105421",
+  "official_n": 139255,
+  "model_neurons": 138639,
+  "model_neurons_in_v783": 138639,
+  "ids_json_ids": 852,
+  "ids_json_ids_in_v783": 852,
+  "pass": true
+}

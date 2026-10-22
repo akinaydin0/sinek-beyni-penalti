@@ -1,0 +1,87 @@
+{
+  "what": "direction-blind pilot (centred keeper only, totals only)",
+  "rule": "- Sahne: yalnızca kaleci ORTADA (keeper_x = 0). Sol/sağ sahneler pilotta yok.\n- Izgara: P9 sürüşü önce kapalı (0), sonra 100 Hz (eonsystemspbc/fly-brain'in P9\n  deneyindeki hız); LC10 hızı 5, 10, 20, 40 Hz. Sıra: P9 kapalı + artan LC10.\n- Her koşul 5 deneme, pilot tohumları 9_000_001'den başlar (kalibrasyonda ve\n  şutlarda hiç kullanılmaz).\n- Ölçülen YALNIZCA toplamlar: S = Rturn + Lturn (10 dönüş nöronunun toplam spike'ı),\n  POW = oDN1_L + oDN1_R, tüm beyindeki spike sayısı. Sol-sağ farkı hesaplanmaz.\n- Seçim: sıradaki ilk koşul, ortalama S >= 10 ve ortalama POW >= 1 ise seçilir.\n  (Dönüş nöronları susuyorsa P9 açılır; görev tanımındaki \"isteğe bağlı P9\".)\n- P_SCALE = max(1, seçilen koşuldaki POW medyanı, tam sayıya yuvarlanmış).\n- Hiçbir koşul geçmezse: LC10 40 Hz + P9 100 Hz alınır ve \"silent\" diye işaretlenir.\nSeçilen üç sabit esleme.py'ye bu betik tarafından yazılır.",
+  "seeds": "9000001..9000040",
+  "n_trials_per_condition": 5,
+  "grid": [
+    {
+      "p9_hz": 0.0,
+      "r_lc10_hz": 5.0,
+      "steer_total_mean": 1.6,
+      "power_mean": 0.2,
+      "power_median": 0.0,
+      "brain_spikes_mean": 4941.2,
+      "trial_s_mean": 2.879747211933136
+    },
+    {
+      "p9_hz": 0.0,
+      "r_lc10_hz": 10.0,
+      "steer_total_mean": 37.6,
+      "power_mean": 15.4,
+      "power_median": 16.0,
+      "brain_spikes_mean": 10541.0,
+      "trial_s_mean": 2.8311909437179565
+    },
+    {
+      "p9_hz": 0.0,
+      "r_lc10_hz": 20.0,
+      "steer_total_mean": 154.8,
+      "power_mean": 42.6,
+      "power_median": 44.0,
+      "brain_spikes_mean": 22862.2,
+      "trial_s_mean": 3.2195461988449097
+    },
+    {
+      "p9_hz": 0.0,
+      "r_lc10_hz": 40.0,
+      "steer_total_mean": 298.2,
+      "power_mean": 57.0,
+      "power_median": 57.0,
+      "brain_spikes_mean": 48156.2,
+      "trial_s_mean": 2.8429882526397705
+    },
+    {
+      "p9_hz": 100.0,
+      "r_lc10_hz": 5.0,
+      "steer_total_mean": 32.0,
+      "power_mean": 33.4,
+      "power_median": 33.0,
+      "brain_spikes_mean": 5910.2,
+      "trial_s_mean": 3.4218947887420654
+    },
+    {
+      "p9_hz": 100.0,
+      "r_lc10_hz": 10.0,
+      "steer_total_mean": 64.6,
+      "power_mean": 61.2,
+      "power_median": 61.0,
+      "brain_spikes_mean": 11542.8,
+      "trial_s_mean": 2.8383809328079224
+    },
+    {
+      "p9_hz": 100.0,
+      "r_lc10_hz": 20.0,
+      "steer_total_mean": 147.8,
+      "power_mean": 67.6,
+      "power_median": 66.0,
+      "brain_spikes_mean": 23300.2,
+      "trial_s_mean": 3.56894588470459
+    },
+    {
+      "p9_hz": 100.0,
+      "r_lc10_hz": 40.0,
+      "steer_total_mean": 297.6,
+      "power_mean": 87.4,
+      "power_median": 84.0,
+      "brain_spikes_mean": 48948.4,
+      "trial_s_mean": 2.9000049829483032
+    }
+  ],
+  "selected": {
+    "R_LC10_HZ": 10.0,
+    "P9_DRIVE_HZ": 0.0,
+    "P_SCALE": 16,
+    "status": "ok"
+  },
+  "run_at": "2026-10-22T05:18:44+00:00"
+}
