@@ -128,7 +128,7 @@ jobs:
           retention-days: 30
 
       - name: sonuç (doğrulama tutmadıysa iş KIRMIZI)
-        if: steps.dogrula.outcome != 'success'
+        if: always() && steps.dogrula.outcome != 'success'
         shell: bash
         run: |
           echo "doğrulama beklenen sonucu vermedi: PROVA DOĞRULANDI + 5/5 bit bit aynı DEĞİL"

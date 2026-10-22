@@ -22,6 +22,7 @@ Ne yapar:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import sys
@@ -85,21 +86,26 @@ def main():
         os.makedirs(bin_dir, exist_ok=True)
         for ad in ("python.exe", "python"):
             shutil.copy2(py, os.path.join(bin_dir, ad))
+        # Alt süreç yolu cp1252 ile yazar ('ç' bozulur): yolu ASCII-güvenli JSON olarak al
+        kod_json = "import sys,json;print(json.dumps([sys.flags.utf8_mode, sys.prefix]))"
         try:
-            kod, cikti, _ = ortak.kos([os.path.join(bin_dir, "python"), "-I", "-c", "import sys;print(sys.prefix)"],
-                                      gizle=True)
-        except OSError as e:
-            kod, cikti = -1, str(e)
-        print(f"beyin/.venv/bin/python -> {cikti.strip()} (çıkış {kod})")
-        if kod != 0 or os.path.normcase(os.path.abspath(cikti.strip())) != os.path.normcase(os.path.abspath(ortak.VENV)):
+            kod, cikti, _ = ortak.kos([os.path.join(bin_dir, "python"), "-I", "-c", kod_json], gizle=True)
+            utf8, prefix = json.loads(cikti.strip().splitlines()[-1])
+        except (OSError, ValueError, IndexError) as e:
+            kod, utf8, prefix = -1, 0, f"çalışmadı: {e}"
+        print(f"beyin/.venv/bin/python -> {prefix} (çıkış {kod})")
+        if kod != 0 or os.path.normcase(os.path.abspath(prefix)) != os.path.normcase(os.path.abspath(ortak.VENV)):
             sys.exit("HATA: beyin/.venv/bin/python kopyası venv'i bulamadı.")
         with open(ortak.UTF8_CMD, "w", encoding="ascii", newline="") as f:
             f.write(ortak.UTF8_CMD_ICERIK)
-        kod, cikti, _ = ortak.kos([ortak.UTF8_CMD, "-I", "-B", "-c",
-                                   "import sys;print(sys.flags.utf8_mode, sys.prefix)"], gizle=True)
-        print(f"beyin/.venv/python_utf8.cmd -> utf8_mode, prefix = {cikti.strip()} (çıkış {kod})")
-        if kod != 0 or not cikti.strip().startswith("1 ") or \
-                os.path.normcase(os.path.abspath(cikti.strip()[2:])) != os.path.normcase(os.path.abspath(ortak.VENV)):
+        try:
+            kod, cikti, _ = ortak.kos([ortak.UTF8_CMD, "-I", "-B", "-c", kod_json], gizle=True)
+            utf8, prefix = json.loads(cikti.strip().splitlines()[-1])
+        except (OSError, ValueError, IndexError) as e:
+            kod, utf8, prefix = -1, 0, f"çalışmadı: {e}"
+        print(f"beyin/.venv/python_utf8.cmd -> utf8_mode {utf8}, prefix {prefix} (çıkış {kod})")
+        if kod != 0 or utf8 != 1 or \
+                os.path.normcase(os.path.abspath(prefix)) != os.path.normcase(os.path.abspath(ortak.VENV)):
             os.remove(ortak.UTF8_CMD)
             print("UYARI: python_utf8.cmd çalışmadı ve silindi; dogrula.py düz python.exe kullanacak. Türkçe kod "
                   "sayfalı (cp1254) Windows'ta beyin yeniden koşusu bu yüzden 'UnicodeDecodeError' ile düşebilir.")
