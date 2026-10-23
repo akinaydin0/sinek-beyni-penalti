@@ -4,8 +4,8 @@
 
 [English version below](#english)
 
-> **Durum (23 Ekim 2026):** hazırlık. Final koşu **yapılmadı**. Bu depoda doğrulanan koşu **PROVA7B**, yani bir
-> tatbikat; sonucu (SİNEK 4 – 1 ÇAKIR) yayımlanacak sonuç **değil**. Final günü config, taahhüt ve sonuç dosyaları buraya
+> **Durum (23 Ekim 2026):** hazırlık. Final koşu **yapılmadı**. Bu depoda doğrulanan koşu **PROVA9B**, yani bir
+> tatbikat; sonucu (SİNEK 5 – 0 ÇAKIR) yayımlanacak sonuç **değil**. Final günü config, taahhüt ve sonuç dosyaları buraya
 > eklenecek. Daha önceki provalar da burada (her taahhüt yayınlanır); eski kodla yapıldıkları için bugünkü kodla
 > bilerek DOĞRULANAMADI alırlar (aşağıda Klasörler).
 
@@ -28,11 +28,12 @@ okuyup kandırıyor" demek yanlış olur. Ayrıntı: `beyin/README.md`.
 ## Kurallar (taahhüde girer, sonradan değişemez)
 
 - 5 şut atılır, **her şut sayılır**, yeniden deneme yok. Gol SİNEK'e; kurtarış, direk, aut ve üstten aut ÇAKIR'a.
+  Direğe çarpıp kale çizgisini çerçevenin içinden geçen top goldür (IFAB Kural 10; motor 1.1.1).
 - **Kaleci gerçekçi (Hunter 2018):** topa dokunsa bile hızlı şut girebilir. Tutma olasılığı = kırp(−0,0447·hız + 1,72).
 - **Kaleci gerçekçi uçar** (`balistik-v1`): ayaklar yerdeyken itme, sonra serbest uçuş (yerçekimi), iniş ve kayma.
   Havada durmaz.
 - **Şut sapması açık (seçenek B):** beynin nişanı "niyet"; ayak, önceden yazılmış bir formülle küçük bir yürütme hatası
-  ekler (Hunter ve ark. 2018 biçimi, maç verisine göre ölçek 0,332). Sapma da drand turu N'den çıkar. Aut ve direk ÇAKIR'a.
+  ekler (Hunter ve ark. 2018 biçimi, maç verisine göre ölçek 0,432: maçtaki penaltılarda kaleyi bulmayan oran %4,78). Sapma da drand turu N'den çıkar. Aut ve direk ÇAKIR'a.
 - **Kaleci her şuttan önce 30–50 cm yana kayar**, yön yarı yarıya. Sayılar drand turu N'nin rastgele değerinden çıkar;
   taahhüt anında kimse bilemez. Beyin kaleciyi tam orada görür, motor tam oraya koyar.
 - **Beyin tohumu da N'den çıkar.**
@@ -58,7 +59,7 @@ Akın'ın kendi Mac'inde çekilmiş bir "DOĞRULANDI" ekranı kanıt değildir. 
 kendi makinende aldığın sonuçtur.
 
 Bilinmesi gereken: kurallar sinek ölçüldükten sonra seçildi ve bu kurallarla sinek ~%99 favori: seriyi kazanma
-tahmini %99,2 (`oyun/olasilik.py`, `veri/olasilik_tahmini_tur3b_B.json`).
+tahmini %98,6 (`oyun/olasilik.py`, `veri/olasilik_tahmini_tur4c_B.json`).
 Her seri adil, ama "kurallar sonuçtan bağımsız seçildi" denemez.
 
 ## Gerekenler
@@ -89,8 +90,8 @@ git clone https://github.com/akinaydin0/sinek-beyni-penalti.git
 cd sinek-beyni-penalti
 py -3.12 -I araclar\kur.py          # 1) kurulum: beyin\.venv, birebir paket sürümleri, derleme denemesi
 py -3.12 -I araclar\veri_indir.py   # 2) Shiu et al. model dosyaları (~104 MB) + SHA-256 kontrolü
-py -3.12 -I araclar\testler.py      # 3) dosya özetleri, duyuru özeti, 29 test
-py -3.12 -I araclar\dogrula.py      # 4) PROVA7B'yi beyin yeniden koşusuyla doğrula
+py -3.12 -I araclar\testler.py      # 3) dosya özetleri, duyuru özeti, 34 test
+py -3.12 -I araclar\dogrula.py      # 4) PROVA9B'yi beyin yeniden koşusuyla doğrula
 ```
 `py` komutu yoksa (Python'u Microsoft Store'dan kurduysan) `python` yaz ve `python --version` 3.12 göstermeli.
 
@@ -116,14 +117,14 @@ python3.12 -I araclar/testler.py
 python3.12 -I araclar/dogrula.py
 ```
 
-### Beklenen sonuç (PROVA7B)
+### Beklenen sonuç (PROVA9B)
 
 ```
 sinek beyni: 5 şutun 5'inde spike'lar Mac referansıyla BİT BİT AYNI
 verify.py sonucu: PROVA DOĞRULANDI (final sonuç DEĞİL) (çıkış 3)
 ```
 - "PROVA DOĞRULANDI", final sonucun DEĞİL tatbikatın tuttuğu anlamına gelir (çıkış kodu 3).
-- 1 UYARI normal: provada taahhüt turdan yalnız 6 dakika önceydi (finalde en az 120 dk).
+- 1 UYARI normal: provada taahhüt turdan yalnız 4 dakika önceydi (finalde en az 120 dk).
 - Akın'ın Mac'i dışındaki makinelerde 1 UYARI daha çıkar: "beyin ortamı taahhüttekinden farklı". Sebep platform adı
   (ör. `Windows-…`); paket sürümleri aynı, yalnız Windows'ta Brian2 fazladan `py-cpuinfo` kurar. Spike'lar yine
   birebir karşılaştırılır.
@@ -215,15 +216,17 @@ adlı boşluklu, Türkçe karakterli klasörde çalıştı):
 | `oyun/` | Motor, taahhüt (`commit.py`), drand (`beacon.py`), saf Python BLS (`bls12381.py`), doğrulama (`verify.py`, `beyin_yeniden.py`), testler, bağımsız JS kontrolü (`bagimsiz/kontrol.mjs`). 11 dosya taahhüde girer. |
 | `beyin/` | Sinek beyni: `kick.py`, `beyin_model.py`, `ortam.py`, `esleme.py` (DONMUŞ), `dondur.py`, `ids.json`, `DONDURMA.json` (taahhüde girer) + kalibrasyon ve kontrol betikleri. `indirilen/` boş; `veri_indir.py` doldurur. |
 | `araclar/` | Kurulum ve çalıştırma kolaylığı (taahhüde girmez): `kur.py`, `veri_indir.py`, `testler.py`, `dogrula.py`; tanı aracı `beyin_hedef_olcum.py`; CI özeti `ci_ozet.py`. |
-| `veri/prova7B/` | PROVA7B (bugünkü kod, seçenek B; SİNEK 4 – 1 ÇAKIR): config, taahhüt, beacon, beyin kararları, penaltı log'u ve Mac'teki verify çıktısı. `dogrula.py` varsayılan olarak bunu doğrular. |
-| `_tur3/veri/beyin_raster/prova7B_beyin_kararlari/` | PROVA7B'nin spike raster'ları (npz). Yol tuhaf ama değiştirilemez: beyin karar dosyası bu yolu içeriyor ve o dosya taahhüt zincirine bağlı. |
-| `veri/prova7A/` | PROVA7A (aynı tur, seçenek A: şut sapması kapalı; 5–0). Taahhüdü yayınlandı; seçenek B duyurulduğu için bugünkü şablonla bilerek DOĞRULANAMADI alır. |
+| `veri/prova9B/` | PROVA9B (bugünkü dondurulmuş kod: motor 1.1.1, seçenek B, ölçek 0,432; SİNEK 5 – 0 ÇAKIR): config, taahhüt, beacon, beyin kararları, penaltı log'u ve Mac'teki verify çıktısı. `dogrula.py` varsayılan olarak bunu doğrular. |
+| `veri/beyin_raster/prova9B_beyin_kararlari/` | PROVA9B'nin spike raster'ları (npz). Yolu beyin karar dosyası belirler; o dosya taahhüt zincirine bağlı olduğu için değiştirilemez. |
+| `veri/ara_prova8B/` | PROVA8B (motor 1.1.1, seçenek B, eski ölçek 0,332; 5–0). Sonra sapma ölçeği yeniden kalibre edildi; bugünkü kodla bilerek DOĞRULANAMADI alır. |
+| `veri/prova7B/` | PROVA7B (motor 1.1.0, seçenek B; 4–1) ve o günün duyurusu (`duyuru_prova7B.json`, `ab65e95b…`). Bugünkü kodla bilerek DOĞRULANAMADI alır. Raster'ları `_tur3/veri/beyin_raster/prova7B_beyin_kararlari/`. |
+| `veri/prova7A/` | PROVA7A (aynı tur, seçenek A: şut sapması kapalı; 5–0). Taahhüdü yayınlandı; seçenek A ve eski kodla yapıldığı için bugünkü şablonla bilerek DOĞRULANAMADI alır. |
 | `veri/ara_prova6/` | Ara provalar 6A ve 6B (ikisi de 4–1). Sonra `tests.py` ve `kalibrasyon.py` değiştiği için bugünkü kodla bilerek DOĞRULANAMADI alır. |
 | `veri/prova5/` | PROVA5 (22 Ekim, eski motor; 5–0) ve o günün duyurusu (`duyuru_prova5.json`, `572bbd8a…`). Motor sonra değişti (balistik kaleci, şut sapması); bugünkü `verify.py` ile bilerek DOĞRULANAMADI alır. |
 | `_tur3/veri/beyin_raster/prova5_beyin_kararlari/` | PROVA5'in spike raster'ları (npz). |
 | `veri/ara_prova4/` | Ara prova 4 (3–2). Taahhüdü `veri/taahhut_gecmisi.jsonl`'da kayıtlı; sonra kod değiştiği için bugünkü `verify.py` ile bilerek DOĞRULANAMADI alır. "Her taahhüt yayınlanır" kuralı gereği burada. |
-| `veri/duyuru.json` | Duyuru özeti (kurallar + 21 kod/veri dosyası, seçenek B): `ab65e95b…`. |
-| `veri/olasilik_tahmini_tur3b_B.json`, `..._A.json` | Kim kazanır tahmini (20.000 seri; sonuç DEĞİL). B: sinek %99,2. |
+| `veri/duyuru.json` | Duyuru özeti (kurallar + 21 kod/veri dosyası, seçenek B): `2bf9adee…`. |
+| `veri/olasilik_tahmini_tur4c_B.json` | Kim kazanır tahmini, bugünkü kodla (20.000 seri; sonuç DEĞİL): sinek %98,6. Eski kodla yapılanlar: `..._tur4b_B`, `..._tur3b_A/B`. |
 | `veri/kalibrasyon.json`, `pilot.json`, ... | Beyin kalibrasyonu ve gerçeklik kontrollerinin sonuçları (`beyin/README.md`). |
 
 ## Lisans ve atıflar
@@ -241,8 +244,8 @@ ve resmi FC 27 değerleri kullanıldı. Bu proje EA, oyuncu ya da kulübüyle ba
 **A fruit-fly brain model takes 5 penalties. I did not pick the result; this repository lets you check that on
 your own computer.**
 
-> **Status (23 Oct 2026):** preparation. The final run has **not** happened. The verified run here is **PROVA7B**, a
-> dry run; its score (FLY 4 – 1 ÇAKIR) is **not** the published result. Earlier dry runs are kept too (every
+> **Status (23 Oct 2026):** preparation. The final run has **not** happened. The verified run here is **PROVA9B**, a
+> dry run; its score (FLY 5 – 0 ÇAKIR) is **not** the published result. Earlier dry runs are kept too (every
 > commitment is published); they used older code, so today's `verify.py` rejects them on purpose.
 
 **What it is.** The Shiu et al. (Nature 2024) whole-brain leaky integrate-and-fire model of *Drosophila* (FlyWire v783
@@ -252,10 +255,11 @@ point and shot speed by a readout frozen before calibration (`beyin/esleme.py`, 
 physics engine plays the keeper, "Uğurcan Çakır", with his EA SPORTS FC 27 ratings (DIV 80, HAN 76, KIC 81, POS 80,
 REF 82). Honest finding: the fly turns **towards** the keeper (object tracking), it does not "read and fool" him.
 
-**Rules (inside the commitment).** 5 kicks, every kick counts, no retries; goal = FLY, save/post/wide/over = ÇAKIR.
+**Rules (inside the commitment).** 5 kicks, every kick counts, no retries; goal = FLY, save/post/wide/over = ÇAKIR (a ball that hits the woodwork
+and then crosses the line inside the frame is a goal, IFAB Law 10; engine 1.1.1).
 Realistic keeper (Hunter 2018 save probability vs. shot speed) with a ballistic dive (push-off, free flight under
 gravity, landing, slide; no hovering). Shot scatter ON (option B): the brain's aim is the intent and the foot adds a
-pre-registered execution error (Hunter et al. 2018 form, scaled to match-penalty miss rates), drawn from round N.
+pre-registered execution error (Hunter et al. 2018 form, scale 0.432 so that 4.78% of kicks miss the target, as in match penalties), drawn from round N.
 Before each kick the keeper shifts 0.30–0.50 m to a
 random side; the shifts and the brain seed come from drand quicknet round N, published **after** the commitment
 (BLS12-381 signature checked by our own pure-Python `oyun/bls12381.py`). Rules + all code are announced a day before
@@ -268,7 +272,7 @@ committer sets it) and pass it as `--yayin-utc`; (2) that the drand
 value is genuine (BLS); (3) that the brain and engine, re-run **on your machine** with the seed and keeper positions
 derived from commitment + beacon, reproduce every number, including a SHA-256 over all brain spikes. A screenshot of
 "DOĞRULANDI" from the operator's machine proves nothing. Caveat: the rules were chosen after the fly was measured
-and under them the fly is a ~99% favourite (series win estimate 99.2%, `veri/olasilik_tahmini_tur3b_B.json`).
+and under them the fly is a ~99% favourite (series win estimate 98.6%, `veri/olasilik_tahmini_tur4c_B.json`).
 
 **Requirements.** Python 3.12 (reference 3.12.10), a C/C++ compiler for Brian2's Cython target (Windows: Build Tools
 for Visual Studio 2022, "Desktop development with C++"; macOS: `xcode-select --install`; Linux: `build-essential`,
@@ -280,7 +284,7 @@ the brain run fails loudly (no silent fallback to numpy, because `beyin_model.py
 `araclar/veri_indir.py`, `araclar/testler.py`, `araclar/dogrula.py` (full blocks above). They (1) build `beyin/.venv`
 with the exact package versions and test-compile Brian2, (2) download the Shiu et al. files from commit `91bdd1e7…` and
 check SHA-256 against `beyin/ids.json`, (3) check the 21 committed files' SHA-256 and the announcement digest and run
-the 29 tests, (4) run `oyun/verify.py` unchanged, with the brain re-run, on PROVA7B. Expected:
+the 34 tests, (4) run `oyun/verify.py` unchanged, with the brain re-run, on PROVA9B. Expected:
 `PROVA DOĞRULANDI (final sonuç DEĞİL)`, exit code 3, and "5 of 5 kicks bit-identical to the Mac reference".
 Non-Mac machines show one extra warning ("brain environment differs"), caused only by the platform string.
 For the final, pass `--taahhut --config --log --karar --beacon-dosya` plus `--kod`, `--duyuru-sha`, `--yayin-utc`

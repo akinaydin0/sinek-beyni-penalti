@@ -67,7 +67,7 @@
     "alpha_v_zemin": 0.000594,
     "alpha_v_yuksek": 0.001372,
     "yukseklik_ref_m": 1.6,
-    "olcek": 0.332,
+    "olcek": 0.432,
     "kural": "[tur3b 2026-10-22] SEÇENEK B (varsayılan KAPALI). Açıksa beynin nişanı 'niyet' sayılır ve ayak sabit, önceden kayıtlı bir yürütme hatası ekler: u1 = U(kseed, 'kick<n>|sapma_u1'), u2 = U(kseed, 'kick<n>|sapma_u2') (kseed = şut n'nin beacon karışmış kaleci seed'i); z1 = sqrt(-2 ln u1)·cos(2π u2), z2 = sqrt(-2 ln u1)·sin(2π u2); f = kırp(nişan_y / yukseklik_ref_m, 0, 1); σx = olcek·(alpha_h_zemin + (alpha_h_yuksek - alpha_h_zemin)·f)·hız^delta_h; σy = olcek·(alpha_v_zemin + (alpha_v_yuksek - alpha_v_zemin)·f)·hız^delta_v; gerçek nişan = niyet + (σx·z1, σy·z2). Alpha/delta: Hunter ve ark. 2018 (J Biomech 72:159-166), iç taraf vuruşu, yerdeki ve 1,6 m'deki hedef. olcek: gerçek maç verisine (kaleyi bulmayan penaltı oranı) kalibrasyon, MODEL.md bölüm 8. Aut, üstten aut ve direk ÇAKIR'a sayılır. Sonuçlar görülmeden sabitlendi; sonradan ayar yok."
   },
   "physics": {

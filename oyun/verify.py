@@ -74,7 +74,8 @@ KAT = {"randomness": "64a2d5d2d5f83225d0c7223321bcdbd8f6bf0850d5260a2f1842e815fb
 KAT_CFG = {"keeper_shift": {"min_m": 0.30, "max_m": 0.50, "p_positive": 0.5, "round_decimals": 3},
            "beacon_rule": "KAT"}
 # [tur3b 2026-10-22] şut sapması formülünün bilinen cevabı (MODEL.md bölüm 8; tests.py bağımsız yeniden hesaplar)
-KAT_SAPMA = {'kseed': 314159265358979323, 'n': 2, 'aim': {'x': -2.2, 'y': 1.45}, 'speed': 26.8, 'hata_m': [0.08493077914693332, -0.16427094633818112]}
+# [tur4 2026-10-23] olcek 0.332 -> 0.432 (motor 1.1.1 ile yeniden kalibrasyon); hata_m tam 0.432/0.332 katı
+KAT_SAPMA = {'kseed': 314159265358979323, 'n': 2, 'aim': {'x': -2.2, 'y': 1.45}, 'speed': 26.8, 'hata_m': [0.11051233913094938, -0.21375014704245252]}
 EKSIK_ZAMAN = "ZAMAN KANITI VERİLMEDİ"
 EKSIK_BEYIN = "BEYİN YENİDEN KOŞTURULMADI"
 BEYIN_KOD = ("kick.py", "beyin_model.py", "ortam.py", "esleme.py", "dondur.py")

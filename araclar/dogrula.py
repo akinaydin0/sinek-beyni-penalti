@@ -2,7 +2,7 @@
 """[tur3b 2026-10-22] ADIM 4: bir taahhüdü doğrula: oyun/verify.py'yi DEĞİŞTİRMEDEN, sinek beyninin yeniden
 koşusuyla birlikte çalıştırır ve sonucu düz dille özetler.
 
-PROVA7B (varsayılan; bu depodaki tatbikat, beklenen sonuç "PROVA DOĞRULANDI"):
+PROVA9B (varsayılan; bu depodaki tatbikat, beklenen sonuç "PROVA DOĞRULANDI"):
     Windows (PowerShell):  py -3.12 -I araclar\\dogrula.py
     macOS / Linux:         python3.12 -I araclar/dogrula.py
 
@@ -20,7 +20,7 @@ Ne yapar:
     süreci 'ş' harfini 0xFE yazar, verify.py UTF-8 bekler ve 'beyin yeniden koşusu başarısız' der.
   - verify.py'nin çıktısından her şut için "spike'lar Mac referansıyla bit bit aynı mı" sonucunu çıkarır.
     (Karar dosyası Mac'te üretildi; verify beyni yeniden koşturup spike özetini ona karşı kontrol eder.)
-  - Provada çıktıyı Mac'in kendi verify çıktısıyla (veri/prova7B/prova7B_verify_cikti.txt) satır satır karşılaştırır.
+  - Provada çıktıyı Mac'in kendi verify çıktısıyla (veri/prova9B/prova9B_verify_cikti.txt) satır satır karşılaştırır.
   - [tur4 2026-10-23] Beyin koşturulamazsa sebebi düz dille söyler (derleyici / metin kodlaması).
 """
 from __future__ import annotations
@@ -80,7 +80,7 @@ def main():
         args = ["--taahhut", p["taahhut"], "--config", p["config"], "--log", p["log"], "--karar", p["karar"],
                 "--beacon-dosya", p["beacon"], "--kod", a.kod or p["kod"],
                 "--duyuru-sha", a.duyuru_sha or p["duyuru_sha"], "--yayin-utc", a.yayin_utc or p["yayin_utc"]]
-        print(f"{p['ad']} doğrulanıyor (tatbikat). --kod / --duyuru-sha / --yayin-utc değerleri _tur3/DEGISIKLIK.md'den;")
+        print(f"{p['ad']} doğrulanıyor (tatbikat). --kod / --duyuru-sha / --yayin-utc değerleri provanın kendi kaydından;")
         print("finalde bunları doğrulayan KENDİSİ dış kaynaktan okur.")
     else:
         if not all(dosyalar):

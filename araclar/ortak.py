@@ -22,22 +22,23 @@ VERI = os.path.join(KOK, "veri")
 VENV = os.path.join(BEYIN, ".venv")
 WINDOWS = os.name == "nt"
 
-# [tur4 2026-10-23] Depodaki doğrulanan tatbikat artık PROVA7B (tur3b kodu, seçenek B: şut sapması açık; bugünkü
-# oyun/ ile birebir aynı kod). Değerler _tur3/DEGISIKLIK.md "PROVA7B" satırından. Provada açık gönderi olmadığı için
-# --kod ve --yayin-utc dış kaynaktan değil, belgeden gelir (finalde doğrulayan bunları KENDİSİ dış kaynaktan okur).
-# Eski PROVA5 dosyaları veri/prova5/ içinde duruyor; eski motorla yapıldığı için bugünkü verify.py ile bilerek
-# DOĞRULANAMADI alır ("her taahhüt yayınlanır" kuralı gereği depoda).
+# [tur4 2026-10-23] Depodaki doğrulanan tatbikat PROVA9B (motor 1.1.1, seçenek B, sapma ölçeği 0,432; dondurulmuş
+# oyun/ ile birebir aynı kod, duyuru özeti 2bf9adee…). Değerler oyun/TAKAS_TAMAM_3.txt ve veri/tur4c_prova_hazir.json'dan
+# (yerelde tur4c_prova_* adlı dosyalar, burada veri/prova9B/). Provada açık gönderi olmadığı için --kod ve --yayin-utc
+# dış kaynaktan değil, provanın kendi kaydından gelir (finalde doğrulayan bunları KENDİSİ dış kaynaktan okur).
+# Eski provalar (PROVA5, 6A/6B, 7A/7B, 8B) veri/ içinde duruyor; eski kodla yapıldıkları için bugünkü verify.py ile
+# bilerek DOĞRULANAMADI alır ("her taahhüt yayınlanır" kuralı gereği depoda).
 PROVA = {
-    "ad": "PROVA7B",
-    "taahhut": os.path.join(VERI, "prova7B", "taahhut_prova7B.json"),
-    "config": os.path.join(VERI, "prova7B", "config_prova7B.json"),
-    "log": os.path.join(VERI, "prova7B", "prova7B_penalty_log.json"),
-    "karar": os.path.join(VERI, "prova7B", "prova7B_beyin_kararlari.json"),
-    "beacon": os.path.join(VERI, "prova7B", "beacon_prova7B.json"),
-    "kod": "95d11f1736b19ac9e78c77b09f79f9d5f0122b3702dd4bf2e73fd2b182e210ed",
-    "duyuru_sha": "ab65e95be6b8ff29b9713e8481f4c8a93a1f4af5dcf2e00902bdfce687b51cf2",
-    "yayin_utc": "2026-10-22T20:44:44Z",
-    "mac_cikti": os.path.join(VERI, "prova7B", "prova7B_verify_cikti.txt"),
+    "ad": "PROVA9B",
+    "taahhut": os.path.join(VERI, "prova9B", "taahhut_prova9B.json"),
+    "config": os.path.join(VERI, "prova9B", "config_prova9B.json"),
+    "log": os.path.join(VERI, "prova9B", "prova9B_penalty_log.json"),
+    "karar": os.path.join(VERI, "prova9B", "prova9B_beyin_kararlari.json"),
+    "beacon": os.path.join(VERI, "prova9B", "beacon_prova9B.json"),
+    "kod": "5a82259ad0b2c1197dcdc25610e35d6f0532bd1733ab219091500259f3aff7a3",
+    "duyuru_sha": "2bf9adee086112433bb0f58ce1e700ac76d4430fdff3420ef13f33911b1cb2a7",
+    "yayin_utc": "2026-10-23T02:48:27Z",
+    "mac_cikti": os.path.join(VERI, "prova9B", "prova9B_verify_cikti.txt"),
 }
 READOUT_DONDURMA = "e0ff656deddd74430262a8b5b272ca9842ae75a2f9b8a806562cc4e42cdcaa27"
 

@@ -1,0 +1,17 @@
+{
+ "network": "drand quicknet",
+ "chain_hash": "52db9ba70e0cc0f6eaf7803dd07447a1f5477735fd3f661792ba94600c84e971",
+ "scheme": "bls-unchained-g1-rfc9380",
+ "round": 33306211,
+ "round_time_utc": "2026-10-23T02:19:57Z",
+ "randomness": "c064b1bd7be5cf2ac05ee2fea818ae5fcce848d143b20fb4b4bebe010f178ef2",
+ "signature": "82aee03551e13a8e11efae744962b00b154041d2ba438beab4a8e51f002099cc8a05e53a8e35d76ae1a5420216d7441b",
+ "kontrol": {
+  "randomness_eq_sha256_signature": true,
+  "bls_imza": "GEÇERLİ: e(imza, g2) = e(H(tur), açık anahtar) (bls12381.py, quicknet açık anahtarı)",
+  "ayni_deger_veren_relaylar": ["https://api.drand.sh","https://api2.drand.sh","https://drand.cloudflare.com"],
+  "ulasilamayan_relaylar": []
+ },
+ "fetched_at_utc": "2026-10-23T02:20:00Z",
+ "prova": true
+}

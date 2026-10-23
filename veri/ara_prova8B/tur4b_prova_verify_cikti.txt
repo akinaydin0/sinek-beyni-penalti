@@ -1,0 +1,75 @@
+MOD: PROVA  (config.mod = 'prova', taahhüt prova = True)
+TAMAM  config.mod ile taahhüdün prova bayrağı tutarlı
+yeniden hesaplanan TAM SHA-256: 396de7d80c100bf9f17ae52bbf0f7213b458d8064a432d3536bf51f97e4029aa
+TAMAM  config + motor + readout, taahhüt dosyasındaki özetle aynı
+TAMAM  penalty_model.py taahhütten beri değişmemiş
+TAMAM  story/sabitlenmiş gönderideki TAM SHA-256 bu özetle aynı
+TAMAM  taahhütteki readout_sha256 donmuş okuma (DONDURMA.json, e0ff656deddd…)
+TAMAM  drand zincir bilgileri quicknet SABİTLERİYLE aynı (chain_hash, public_key, şema, genesis, period, relay'ler)
+TAMAM  Akın'ın 22 Ekim kararları: Hunter a=-0.0447 b=1.72, kayma 0,30-0,50 m %50/%50, merkeze çekilme 0, FC 27 reytingleri, 5 şut, beyin tohumu beacon'dan; [tur3b] kaleci uçuşu balistik-v1, şut sapması kuralı sapma-v1 sabitleri
+bilgi  [tur3b] şut sapması: SEÇENEK B (AÇIK: beynin nişanına önceden kayıtlı yürütme hatası eklenir); seçenek şablonda, duyuru özetinin içinde
+TAMAM  config, şablonla (duyurulan kurallar) alan alan aynı
+DUYURU ÖZETİ (kurallar + kod): 6df5b1ac6343453b0d01ba474e49133f12c6c94c9b4ad7e4baaad8e3bcb008bd
+TAMAM  kurallar ve kod özetleri, önceden duyurulanla aynı (duyuru özeti)
+TAMAM  kayma, beyin tohumu ve kaleci seed formülleri belgedeki bilinen cevaplarla aynı (KAT)
+TAMAM  [tur3b] şut sapması formülü belgedeki bilinen cevapla aynı (KAT)
+TAMAM  kod ve veri özetleri taahhüttekiyle aynı (11 oyun, 10 beyin dosyası)
+TAMAM  kod özetindeki motor = taahhütteki motor
+bilgi  beyin ortamı taahhüttekiyle aynı (Python 3.12.10, 25 paket)
+TAMAM  beacon dosyası: drand quicknet turu 33306211, taahhütteki turla aynı
+TAMAM  beacon: randomness = SHA-256(signature)
+TAMAM  beacon: BLS imzası quicknet açık anahtarıyla GEÇERLİ (e(imza, g2) = e(H(tur), açık anahtar))
+   https://api.drand.sh: aynı; zincir bilgisi (/info) sabitlerle aynı
+   https://api2.drand.sh: aynı; zincir bilgisi (/info) sabitlerle aynı
+   https://drand.cloudflare.com: aynı; zincir bilgisi (/info) sabitlerle aynı
+TAMAM  ulaşılan hiçbir relay farklı değer vermiyor
+TAMAM  relay'lerin zincir bilgisi (/info) sabitlerle aynı
+bilgi  3 relay aynı değeri verdi
+       drand turu 33306211 yayın saati: 2026-10-23T02:19:57Z UTC (quicknet sabitlerinden)
+TAMAM  taahhüdün kendi saati (2026-10-23T02:15:55Z) turdan önce (dosyanın beyanı, KANIT DEĞİL)
+TAMAM  taahhüt, tur yayınlanmadan ÖNCE herkese açık yerde (dış kanıt 2026-10-23T02:15:55Z < 2026-10-23T02:19:57Z)
+UYARI  (prova) taahhüt turdan yalnız 4 dk önce; finalde en az 120 dk gerekir
+TAMAM  penalty_log.json'daki commit_sha256 taahhütle aynı
+TAMAM  beyin dosyasındaki commit_sha256 taahhütle aynı
+TAMAM  beyin dosyasının readout_sha256'sı donmuş okuma (eksikse HATA)
+TAMAM  log, bu karar dosyasından üretilmiş
+TAMAM  karar dosyası ve log'un prova/stub bayrakları moda uygun
+TAMAM  şutlar 1..5 eksiksiz, beyin dosyasında ve log'da (yeniden deneme yok)
+TAMAM  karar dosyasındaki code_sha256 / data_sha256 taahhütteki beyin kodu ve verisiyle aynı
+TAMAM  beyin tohumları beacon'dan (seed_base 359914422, trial_seed = seed_base + n)
+       beklenen kaymalar (m): -0.301, +0.473, -0.461, +0.316, -0.353
+TAMAM  beyin sahnesi (scene.keeper_x) beacon'dan hesaplanan kaymalarla birebir aynı
+TAMAM  beyin girdi kaydı (scene_input) aynı kaymalar
+TAMAM  motorun kaleci başlangıcı (log keeper.start_x) aynı kaymalar: beyin ile motor aynı yeri görüyor
+TAMAM  her şutta steer, nişan ve hız spike sayılarından donmuş eşlemeyle çıkıyor (esle(oku(counts)))
+TAMAM  karar dosyasındaki okuma formülü ve sabitler donmuş esleme.py ile aynı
+TAMAM  beyin yeniden koşusu 5 şut verdi
+TAMAM  şut 1: beyin taahhüt + beacon'daki tohum (359914423) ve yerle (-0.301) yeniden koşturuldu, çıktı birebir aynı (spikes 04b846352337)
+TAMAM  şut 1: raster dosyası (npz) yeniden koşuyla aynı (aynı)
+TAMAM  şut 2: beyin taahhüt + beacon'daki tohum (359914424) ve yerle (+0.473) yeniden koşturuldu, çıktı birebir aynı (spikes 51323f5423e0)
+TAMAM  şut 2: raster dosyası (npz) yeniden koşuyla aynı (aynı)
+TAMAM  şut 3: beyin taahhüt + beacon'daki tohum (359914425) ve yerle (-0.461) yeniden koşturuldu, çıktı birebir aynı (spikes 82b5c9b33db1)
+TAMAM  şut 3: raster dosyası (npz) yeniden koşuyla aynı (aynı)
+TAMAM  şut 4: beyin taahhüt + beacon'daki tohum (359914426) ve yerle (+0.316) yeniden koşturuldu, çıktı birebir aynı (spikes e9cd7119d655)
+TAMAM  şut 4: raster dosyası (npz) yeniden koşuyla aynı (aynı)
+TAMAM  şut 5: beyin taahhüt + beacon'daki tohum (359914427) ve yerle (-0.353) yeniden koşturuldu, çıktı birebir aynı (spikes b3487e1e6b1d)
+TAMAM  şut 5: raster dosyası (npz) yeniden koşuyla aynı (aynı)
+TAMAM  log'daki beacon (kural + değer) bu beacon
+TAMAM  kaleci seed'leri = taahhütteki seed'ler + bu beacon
+TAMAM  motor koşusu baştan üretildi: log bayt bayt aynı
+SKOR   SİNEK 5 – 0 ÇAKIR  (goal goal goal goal goal; gol dışı her sonuç ÇAKIR'a)
+TAMAM  bağımsız JS uygulaması (bagimsiz/kontrol.mjs) kaymaları, beyin tohumunu ve kaleci seed'lerini aynı hesaplıyor
+
+VİDEO AÇIKLAMASI VE EKRAN İÇİN (her şutta ekranda: taahhüt, run_id, keeper_x, nişan, sonuç):
+   taahhüt SHA-256 : 396de7d80c100bf9f17ae52bbf0f7213b458d8064a432d3536bf51f97e4029aa
+   log SHA-256     : 80c89b1cbd340f6b11d53fd9ee2dae650ae4486e4a7a1db4c79424df965b6693   (tur4b_prova_penalty_log.json, dosya baytları)
+   drand turu      : 33306211 | run_id: PROVA-81ca060cf5
+   şut 1: keeper_x -0.301 | nişan (-3.13, 1.56) -> sapmalı (-3.04, 1.33) 26.56 m/s | goal
+   şut 2: keeper_x +0.473 | nişan (+0.00, 1.31) -> sapmalı (-0.19, 1.46) 25.0 m/s | goal
+   şut 3: keeper_x -0.461 | nişan (-2.84, 1.40) -> sapmalı (-2.77, 1.75) 25.59 m/s | goal
+   şut 4: keeper_x +0.316 | nişan (-0.97, 1.31) -> sapmalı (-1.20, 1.22) 25.0 m/s | goal
+   şut 5: keeper_x -0.353 | nişan (-3.01, 1.52) -> sapmalı (-2.75, 1.49) 26.34 m/s | goal
+
+özet: 0 HATA, 0 EKSİK, 1 UYARI
+NOT: bu sonuç yalnız bu programı KENDİ makinesinde, kendi indirdiği dosyalarla çalıştıran için geçerlidir.
+SONUÇ: PROVA DOĞRULANDI (final sonuç DEĞİL)

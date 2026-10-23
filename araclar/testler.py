@@ -6,11 +6,11 @@
 
 Üç kontrol:
   A. Dosyalar taahhütteki gibi mi? Taahhüde giren 21 dosyanın (11 oyun + 10 beyin) SHA-256'sı
-     veri/prova7B/config_prova7B.json -> kod_ozetleri ile aynı mı. Tutmazsa en sık sebep Windows'ta git'in satır
+     veri/prova9B/config_prova9B.json -> kod_ozetleri ile aynı mı. Tutmazsa en sık sebep Windows'ta git'in satır
      sonlarını CRLF'ye çevirmesidir (.gitattributes bunu kapatır; ZIP yerine 'git clone' kullan).
-  B. Duyuru özeti: oyun/commit.py kurallar -> ab65e95b… (veri/duyuru.json ile aynı olmalı).
-  C. oyun/tests.py: 29 test (ağa çıkmaz; beyin koşusu burada taklit edilir, gerçeği dogrula.py'de).
-[tur4 2026-10-23] tur3b kodu (balistik kaleci + seçenek B şut sapması) ve PROVA7B'ye güncellendi.
+  B. Duyuru özeti: oyun/commit.py kurallar -> 2bf9adee… (veri/duyuru.json ile aynı olmalı).
+  C. oyun/tests.py: 34 test (ağa çıkmaz; beyin koşusu burada taklit edilir, gerçeği dogrula.py'de).
+[tur4 2026-10-23] dondurulmuş koda (motor 1.1.1, seçenek B, sapma ölçeği 0,432) ve PROVA9B'ye güncellendi.
 """
 from __future__ import annotations
 
@@ -61,7 +61,7 @@ def main():
     ortak.baslik("C. oyun/tests.py")
     kod, cikti, s = ortak.kos([sys.executable, "-I", "-X", "utf8", "-B", os.path.join(ortak.OYUN, "tests.py")])
     son = [x for x in cikti.splitlines() if "test geçti" in x]
-    sonuc["C"] = kod == 0 and bool(son) and son[-1].split()[0] in ("29/29",)  # [tur4 2026-10-23] tur3b: 29 test
+    sonuc["C"] = kod == 0 and bool(son) and son[-1].split()[0] in ("34/34",)  # [tur4 2026-10-23] dondurulmuş kod: 34 test
     print(("TAMAM  " if sonuc["C"] else "HATA   ") + f"oyun/tests.py: {son[-1] if son else 'sonuç satırı yok'} "
           f"(çıkış {kod}, {s:.1f} s)")
 

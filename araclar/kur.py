@@ -71,7 +71,7 @@ def main():
     if kod != 0:
         sys.exit("HATA: paketler kurulamadı (yukarıdaki pip çıktısına bak).")
     print(f"paketler kuruldu ({s1 + s2:.0f} s)")
-    ref = ortak.json_oku(ortak.PROVA["config"])["ortam"]["paketler"]  # [tur4 2026-10-23] PROVA7B
+    ref = ortak.json_oku(ortak.PROVA["config"])["ortam"]["paketler"]  # [tur4 2026-10-23] PROVA9B
     kod, cikti, _ = ortak.kos([py, "-I", "-B", "-c",
                                "import importlib.metadata as m;print('\\n'.join(sorted(d.metadata['Name']+'=='+d.version "
                                "for d in m.distributions())))"], gizle=True)

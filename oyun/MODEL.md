@@ -19,7 +19,7 @@ Kaleci için "left/right" her yerde **kalecinin kendi** solu/sağıdır (Bar-Eli
 | Uçuş süresi | `flight_time_s` = kalecisiz, direksiz serbest uçuşta z = 0'a varış. 24 m/s: orta ≈ 0,50 s, köşe 0,52-0,54 s | |
 | Zemin | sekme katsayısı 0,6, teğet hız ×0,85, dikey hız 0,4 m/s altına inince yuvarlanma, yuvarlanma yavaşlaması 0,6 m/s² | varsayım (yalnız görüntü) |
 | Kale | iç kenarlar x = ±3,66, üst direk alt kenarı 2,44 m, direk kalınlığı 12 cm → direk ekseni x = ±3,72, üst direk ekseni y = 2,50, eksenler z = 0, yarıçap 0,06 | IFAB Kural 1 |
-| Direk teması | top merkezi ile direk ekseni arası < 0,17 m → `post` (üst direk dahil). Sekme: dik bileşen ×0,6, teğet ×0,9 | brief kuralı; katsayılar varsayım |
+| Direk teması | top merkezi ile direk ekseni arası < 0,17 m → ahşap vuruşu (üst direk dahil). Sekme: dik bileşen ×0,6, teğet ×0,9. [tur4 2026-10-23] Sonucu vuruş değil **kale çizgisi** belirler (IFAB Kural 10): top sonra çizgiyi çerçevenin içinden geçerse `goal` (direkten gol), dışından geçerse ya da hiç geçmezse `post` | brief kuralı; katsayılar varsayım; Kural 10 |
 | Gol / ıska | kaleci ve direk teması yoksa, z = 0'da merkez içerideyse `goal`; dışarıdaysa `wide` ya da `over` (hangi yönde daha çok taşıyorsa) | |
 | File | 1,5 m derin kutu, çok düşük sekme | yalnız görüntü |
 
@@ -145,7 +145,15 @@ a = −0,0447, b = 1,72 → 20 m/s %82,6, 26,5 m/s %53,5, 30 m/s %37,9. Ölçül
 - `keeper.contact` ek: `part` (legs/torso/arm), `depth_cm`, `ball_speed_mps`, `p_catch`, `beaten`, `p_keep`. Gol, ıska ve direkte `contact` = `null`.
 - `beyin`: karar dosyasından kopya (`trial_seed`, `steer`, `power_spikes`, `decision_ms`, `scene`).
 - `event`: sonucu belirleyen an (`keeper`, `post_left_of_keeper`, `post_right_of_keeper`, `crossbar`, `goal_line`), `t` ve `pos`.
-- Tutulan topun yörüngesi el noktasını izler; çelinen ya da direkten dönen top 0,8 s daha simüle edilir.
+  [tur4 2026-10-23, motor 1.1.1] Ahşap olaylarında (`post_*`, `crossbar`) `type/t/pos` ilk ahşap vuruşudur ve iki EK alan
+  vardır: `direkten_gol` (true = top sonra kale çizgisini çerçevenin içinden geçti, `outcome` = `goal`; false = `outcome` =
+  `post`) ve `cizgi` (topun çizgiyi geçtiği an ve yer, `{t, pos}`; geçmediyse `null`). **Sonucu her zaman `outcome` söyler**;
+  ekrandaki etiket `outcome`'tan gelmeli (direkten golde "GOL", istenirse "direkten gol" alt yazısı). Eski okuyucular bozulmaz.
+- Tutulan topun yörüngesi el noktasını izler; çelinen ya da direkten dönen top 0,8 s daha simüle edilir. [tur4 2026-10-23]
+  Ahşaptan sonra karar bekleniyorsa (çizgi henüz geçilmedi) bu kesme, top çerçeveye artık değemeyecek kadar önde ve
+  kaleden uzaklaşıyor/duruyor olana kadar ertelenir (top kaleye dönebildiği sürece simülasyon sürer, en çok `t_max_s`).
+- [tur4 2026-10-23] Çelme kuralı değişmedi: kurtarışta (çelme) top kaleye dönmez; kurtarıştan sonra ahşap ya da çizgi
+  sonucu değiştirmez.
 
 ## 6. Sınırlar
 - Falso/Magnus yok, Cd sabit; rüzgâr yok.
@@ -173,6 +181,8 @@ a = −0,0447, b = 1,72 → 20 m/s %82,6, 26,5 m/s %53,5, 30 m/s %37,9. Ölçül
 - **Beyin tohumu da beacon'dan** [tur3 2026-10-22]: seed_base = (SHA-256(`"<randomness>|<taahhüt SHA>|beyin|seed_base"`) ilk 8 onaltılık hane) mod 4·10⁹; şut n'nin tohumu seed_base + n (kick.py kuralı). Config'te seed_base yok.
 - **Doğrulama (`verify.py`):** BLS imzası quicknet açık anahtarıyla (`bls12381.py`, RFC 9380); randomness = SHA-256(signature); ulaşılan relay'lerin hiçbiri farklı değer vermiyor ve `/info` sabitlerle aynı; beyin taahhüt + beacon'dan hesaplanan tohum ve yerle yeniden koşturulup birebir karşılaştırılıyor. Ayrıntı: `_tur3/YENI_AKIS.md`.
 - **Skor:** gol → SİNEK; kurtarış, direk, aut (wide), üstten aut (over) → ÇAKIR (`skor_kurali`). Her şut sayılır.
+  [tur4 2026-10-23] Direkten gol (direk/üst direkten sonra çizgiyi içeriden geçen top) bir GOLDÜR → SİNEK; `post` yalnız
+  direkten sonra kaleye girmeyen şut.
 - **Positioning 80 ne yapıyor?** Tur3 kurallarıyla motorda hiçbir şey. Değer config'te, log'da ve taahhütte durur;
   ekranda gösterilebilir, ama kalecinin yeri artık kayma kuralından gelir. Reytingi kaymaya bağlayan yayımlanmış bir
   formül yok; 30-50 cm aralığı Akın'ın kararıdır.
@@ -200,24 +210,29 @@ yürütme hatası ekler. A (kapalı) bugünkü davranıştır.
 | Biçim | standart sapma = α·hız^δ (hız m/s) | makalenin varyans gücü fonksiyonu; şekil 2-3'teki ±1 SD çizgileriyle kontrol edildi (ör. yerdeki hedef, 25 m/s: dikey SD ~0,45 m) |
 | İç taraf seçimi | | sinekte vuruş tekniği yok; iç taraf daha isabetli (daha az sapma: sinek lehine, temkinli seçim); sineğin hızları (24-28 m/s) iç tarafın ulaşabildiği aralıkta (makale: iç tarafla 30 m/s üstü yok) |
 | Yükseklik arası | 0 ile 1,6 m arasında doğrusal, 1,6 m üstü yüksek hedef değeri | varsayım (makalede yalnız iki hedef var) |
-| **olcek** | **0,332** | **gerçek maç verisine kalibrasyon** (aşağıda) |
+| **olcek** | **0,432** ([tur4 2026-10-23]; eskisi 0,332) | **gerçek maç verisine kalibrasyon** (aşağıda) |
 
 **Kalibrasyon (`kalibrasyon.py --config config_sablon.json --sapma-kalibre`, 12.000 şut, ortak rastgele sayılarla ikiye bölme):**
 - Hedef: maç içi penaltılarda kaleyi bulmayan (aut + üstten aut + direk) oranı **%4,78** = Vollmer, Schoch & Brandes 2024
   (*PLoS One* 19:e0315017; Transfermarkt, 115 yarışma, 2012/13-2022/23): kupalar %4,29 (7.694), ligler %4,94 (23.519).
 - Niyet nişanları: bölüm 3'ün standart şut kümesi (bölge içinde x düzgün, yükseklik alçağa yatık, hız N(23,5; 1,9));
   bölgeler Bar-Eli vuruş toplamlarıyla (92 / 82 / 112) ağırlıklı; kaleci gerçek dağılımdan (`draw_plan`).
-- Sonuç: olcek 1,0 (laboratuvar hatası olduğu gibi) → %15,4 kaçan (gerçeğin 3 katı); **olcek 0,332 → %4,78**. Yani maçtaki
-  profesyoneller laboratuvardaki deneyimli oyunculardan ~3 kat isabetli (ya da niyetleri çerçeveden daha içeride).
+- Sonuç ([tur4 2026-10-23], motor 1.1.1): olcek 1,0 (laboratuvar hatası olduğu gibi) → %13,7 kaçan; **olcek 0,432 → %4,78**
+  (aut %0,33, üstten aut %0,95, direk %3,50). Yani maçtaki profesyoneller laboratuvardaki deneyimli oyunculardan ~2,3 kat
+  isabetli (ya da niyetleri çerçeveden daha içeride).
 - Kontrol (ayarlamada kullanılmadı): Almeida, Volossovitch & Duarte 2016 (UEFA ŞL + UAL, 536 penaltı; The Guardian'ın
-  grafiği): genel %5,2 kaçan; kale üst sırasında ~%13,7, alt sırasında ~%2,7. Model: üst sıra %10,5, alt sıra %2,3
+  grafiği): genel %5,2 kaçan; kale üst sırasında ~%13,7, alt sırasında ~%2,7. Model (0,432): üst sıra %11,3, alt sıra %2,0
   (yüksek şutlarda gerçeği biraz **az** tahmin ediyor).
-- **Bilinen zayıflık:** modelde kaçanların ~%90'ı direk (aut %0,09, üstten aut %0,38, direk %4,31); UEFA.com'un
+- [tur4 2026-10-23] **Kalibrasyon hatası (dürüst not):** 0,332, motor 1.1.0'ın direkten golleri "direk" saydığı hâliyle
+  kalibre edildi. Motor 1.1.1'de (direkten gol = gol) aynı ölçekle kaçan oranı %3,34 (hedef %4,78); düzeltilmiş kuralla %4,78'i
+  veren ölçek 0,432. **Seçenek B "gerçek maç verisine (%4,78) kalibre" diye kaydedildiği için ölçek düzeltildi: 0,432**
+  (`../_tur3/tur3b_olcum/sapma_kalibrasyon_motor111.txt`, `kalibrasyon_sonuc.txt`). Yeni bir kural değil, kaydedilen kuralın düzeltmesi.
+- **Bilinen zayıflık:** (0,332 ile) kaçanların ~%90'ı direkti; 0,432 ile ~%73 (aut %0,33, üstten aut %0,95, direk %3,50); UEFA.com'un
   2007/08-2013/14 ŞL sayımında 211 penaltıda 8 direk, 4 aut (küçük örnek). Sebep: niyet olarak alınan standart küme
   çerçeveye kadar uzanıyor (direğe 11 cm, üst direğe 14 cm). Kaçanların TOPLAM oranı kalibre, ama türleri gerçekten daha
   direk ağırlıklı.
 - Sinek için anlamı: sineğin nişanları çerçeveden içeride (yan direğe ~0,5-2 m, üst direğe ~0,8-1,1 m) ve hızlı (25-28
-  m/s); bu kuralla tipik bir sinek şutunda σx ≈ 0,24 m, σy ≈ 0,37 m (26,8 m/s, 1,45 m). Olasılıklar: `../_tur3/DEGISIKLIK.md`.
+  m/s); bu kuralla tipik bir sinek şutunda σx ≈ 0,32 m, σy ≈ 0,48 m (26,8 m/s, 1,45 m; [tur4] 0,432 ile). Olasılıklar: `../_tur3/DEGISIKLIK.md`.
 - **Sonradan ayar yok:** olcek ve bütün α/δ `commit.py`'de (`TUR3B_KURALLARI`) ve `verify.py`'de (KAT) elle yazılı; şablon
   bunlardan saparsa `commit.py` üretmez, `verify.py` HATA verir. A mı B mi, şablondaki `sut_sapmasi.acik` ile seçilir
   ve bir gün önceki duyuru özetine girer.

@@ -98,7 +98,8 @@ TUR3B_KURALLARI = {
     "sut_sapmasi.alpha_v_zemin": 0.000594,
     "sut_sapmasi.alpha_v_yuksek": 0.001372,
     "sut_sapmasi.yukseklik_ref_m": 1.6,
-    "sut_sapmasi.olcek": 0.332,   # kalibrasyon: kalibrasyon.py --sapma-kalibre (MODEL.md 8)
+    # [tur4 2026-10-23] 0.332 -> 0.432: motor 1.1.1 (direkten gol = gol) ile yeniden kalibrasyon, aynı yöntem ve hedef (%4,78)
+    "sut_sapmasi.olcek": 0.432,   # kalibrasyon: kalibrasyon.py --sapma-kalibre (MODEL.md 8)
 }
 
 # kural özetine GİRMEYEN (koşudan koşuya değişen) alanlar

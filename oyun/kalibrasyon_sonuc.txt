@@ -24,8 +24,23 @@ Kurtarış haritası: 24 m/s, kaleci ortada, seed'den gelen gerçek plan dağıl
    1.0    20%    23%     7%     5%     7%     7%    20%    18%
    0.3    17%    15%    25%    10%    13%    27%    23%    25%
 
-# [tur3b] şut sapması (seçenek B) ölçeği: python3.12 -I kalibrasyon.py --config config_sablon.json --sapma-kalibre --sapma-n 12000
+# [tur4 2026-10-23] şut sapması (seçenek B) ölçeği, motor 1.1.1 (direkten gol = GOL) ile YENİDEN kalibre edildi.
+# Yöntem aynı: python3.12 -I kalibrasyon.py --config config_sablon.json --sapma-kalibre (--sapma-n 12000, ikiye bölme 11 adım,
+# ortak rastgele sayılar; hedef %4,78 = Vollmer ve ark. 2024). Eski 0.332, motor 1.1.0'ın direkten golleri "direk" (kaçan)
+# saydığı hâliyle bulunmuştu; 1.1.1'de 0.332 ile kaçan %3,34'e düşüyordu. Sonuç 0.432 şablona ve kurallara yazıldı.
 Şut sapması kalibrasyonu: hedef kaçan oranı %4.78 (Vollmer ve ark. 2024, maç içi), 12000 şut, standart şut kümesi NİYET nişanı sayılır, kaleci gerçek dağılımdan (draw_plan)
-  olcek 1.0000: kaçan %15.42 (aut 392, üst 606, direk 852) | üst sıra %34.1, alt sıra % 7.1
-SONUÇ olcek = 0.332: kaçan %4.78 | aut %0.09, üstten aut %0.38, direk %4.31 | kurtarış %12.03 | gol %83.18
-   Almeida 2016 kıyası (gerçek geçiş yüksekliğine göre): üst sıra model %10.5 (gerçek ~%13,7), alt sıra model %2.3 (gerçek ~%2,7)
+  olcek 1.0000: kaçan %13.65 (aut 392, üst 606, direk 640) | üst sıra %31.0, alt sıra % 5.9
+  olcek 0.5100: kaçan % 6.02 (aut 82, üst 164, direk 476) | üst sıra %14.3, alt sıra % 2.5
+  olcek 0.2650: kaçan % 2.38 (aut 1, üst 22, direk 263) | üst sıra % 5.8, alt sıra % 0.9
+  olcek 0.3875: kaçan % 4.05 (aut 24, üst 89, direk 373) | üst sıra % 9.5, alt sıra % 1.7
+  olcek 0.4487: kaçan % 5.08 (aut 48, üst 123, direk 439) | üst sıra %12.0, alt sıra % 2.1
+  olcek 0.4181: kaçan % 4.56 (aut 32, üst 105, direk 410) | üst sıra %10.8, alt sıra % 1.9
+  olcek 0.4334: kaçan % 4.81 (aut 39, üst 115, direk 423) | üst sıra %11.5, alt sıra % 2.0
+  olcek 0.4258: kaçan % 4.67 (aut 35, üst 112, direk 414) | üst sıra %11.1, alt sıra % 2.0
+  olcek 0.4296: kaçan % 4.73 (aut 37, üst 113, direk 418) | üst sıra %11.2, alt sıra % 2.0
+  olcek 0.4315: kaçan % 4.77 (aut 39, üst 113, direk 420) | üst sıra %11.3, alt sıra % 2.0
+  olcek 0.4325: kaçan % 4.79 (aut 39, üst 114, direk 422) | üst sıra %11.4, alt sıra % 2.0
+  olcek 0.4320: kaçan % 4.78 (aut 39, üst 114, direk 420) | üst sıra %11.3, alt sıra % 2.0
+
+SONUÇ olcek = 0.432: kaçan %4.78 | aut %0.33, üstten aut %0.95, direk %3.50 | kurtarış %11.85 | gol %83.38
+   Almeida 2016 kıyası (gerçek geçiş yüksekliğine göre): üst sıra model %11.3 (gerçek ~%13,7), alt sıra model %2.0 (gerçek ~%2,7)

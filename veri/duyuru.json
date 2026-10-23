@@ -1,6 +1,6 @@
 {
- "duyuru_ozeti_sha256": "ab65e95be6b8ff29b9713e8481f4c8a93a1f4af5dcf2e00902bdfce687b51cf2",
- "kural_ozeti_sha256": "2d5f24600f42c83ac68837c8bad9d7efebc679065ebcae53d54cd498c29d939d",
+ "duyuru_ozeti_sha256": "2bf9adee086112433bb0f58ce1e700ac76d4430fdff3420ef13f33911b1cb2a7",
+ "kural_ozeti_sha256": "236189a3bfd6fcc7bb0d10a9ffa36a508895fed1a3bffab15aef50f43b9cfe28",
  "kurallar": {
   "kural_surumu": "tur3b-ucus-2026-10-22",
   "keeper": {
@@ -55,7 +55,7 @@
    "alpha_v_zemin": 0.000594,
    "alpha_v_yuksek": 0.001372,
    "yukseklik_ref_m": 1.6,
-   "olcek": 0.332,
+   "olcek": 0.432,
    "kural": "[tur3b 2026-10-22] SEÇENEK B (varsayılan KAPALI). Açıksa beynin nişanı 'niyet' sayılır ve ayak sabit, önceden kayıtlı bir yürütme hatası ekler: u1 = U(kseed, 'kick<n>|sapma_u1'), u2 = U(kseed, 'kick<n>|sapma_u2') (kseed = şut n'nin beacon karışmış kaleci seed'i); z1 = sqrt(-2 ln u1)·cos(2π u2), z2 = sqrt(-2 ln u1)·sin(2π u2); f = kırp(nişan_y / yukseklik_ref_m, 0, 1); σx = olcek·(alpha_h_zemin + (alpha_h_yuksek - alpha_h_zemin)·f)·hız^delta_h; σy = olcek·(alpha_v_zemin + (alpha_v_yuksek - alpha_v_zemin)·f)·hız^delta_v; gerçek nişan = niyet + (σx·z1, σy·z2). Alpha/delta: Hunter ve ark. 2018 (J Biomech 72:159-166), iç taraf vuruşu, yerdeki ve 1,6 m'deki hedef. olcek: gerçek maç verisine (kaleyi bulmayan penaltı oranı) kalibrasyon, MODEL.md bölüm 8. Aut, üstten aut ve direk ÇAKIR'a sayılır. Sonuçlar görülmeden sabitlendi; sonradan ayar yok."
   },
   "physics": {
@@ -150,16 +150,16 @@
   }
  },
  "kod_ozetleri": {
-  "oyun/penalty_model.py": "579814428d8e24c16bd21b97da5f14caa6cd97f463b75aa58c44819bbf9db252",
-  "oyun/commit.py": "5e09b6bfc7757affccf2bb2acd6c7ac8bde55e5f8351436294043d050f9cdd09",
+  "oyun/penalty_model.py": "9b0fb1ab530164b3faad7d4169f93023b63ba6ad6bcfa087a331ea4112992703",
+  "oyun/commit.py": "e7b41b1a89f75d469b1d39bf06e01c570c197d31f1b72d7f362c8d30c8630a4d",
   "oyun/beacon.py": "9f141f8196375867801c790eb377d45737314c00bda2dbcc2ad20849470c69a0",
-  "oyun/verify.py": "b399837a50e48d88c04e26f1eb8dbb84d68467d4e997330a2830eccb09a04751",
+  "oyun/verify.py": "cc525b213e1534f88d51e2d567e6f498e0b3ee5a843ebb09197a3204fc9a88f6",
   "oyun/bls12381.py": "06076127629429c1d8f000c327e6b0431ba81f86224d658314e92d20146a588b",
   "oyun/beyin_yeniden.py": "f54a7fb63d992e84fe0a616f6ba91b14f822d749bd691ef463672605f31387be",
-  "oyun/tests.py": "0b7ca8ad59385675a063e8714132c0b3842006827f019e3df5d060fc25ae19bd",
+  "oyun/tests.py": "87ae430e556edb562501781784ce43914a51a766d5f222b9239b3b305d7b0d1a",
   "oyun/olasilik.py": "763e82f16fafb132d814b6941f77ce73d917e3f8992d961674a41fea1414a8db",
   "oyun/kalibrasyon.py": "3d80a02038712745600c18a108ba02e0fe6ef41e561661c004e96aafc6fa0f84",
-  "oyun/config_sablon.json": "69d0e5398466256cd372593214f2a8af9e66c6506e976ed101f5ee82e265aeab",
+  "oyun/config_sablon.json": "410f1213da92dff136a8ea79e0eb663a09be268857f09c8930c0e707cc759f18",
   "oyun/bagimsiz/kontrol.mjs": "7e552016b6b2f85cdf23b4974bf825026be8cd0f3ee28a21310d3a8735837249",
   "beyin/kick.py": "2663c5bf5968c67f9f7cea46bf2fc44574d5a43877064f8c22f5cff1b3c16953",
   "beyin/beyin_model.py": "d4cf8ff717452c77f56bebbc083247108aef992b89baf0f8ff5356e3ab4ccef0",

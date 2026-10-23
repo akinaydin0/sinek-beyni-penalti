@@ -63,6 +63,13 @@ kanıttır. Taahhütten sonra kodda ya da config'te tek bayt değişirse doğrul
 DOĞRULANAMADI alır: taahhütlerinde kod özetleri, sabit drand bilgisi ve beacon'dan beyin tohumu yok. Bu beklenen bir şey;
 o dosyalar eski `verify.py` ile (`oyun/` takastan önceki hâli, `_tur3/_kurcalama/temiz/oyun`) doğrulanır.
 
+## [tur4 2026-10-23] Motor 1.1.1: direkten gol
+Direğe ya da üst direğe çarpan şutun sonucu artık kale çizgisinde verilir (IFAB Kural 10): top sonra çizgiyi çerçevenin
+içinden geçerse **GOL** (`outcome: goal`, `event.type` direk/üst direk, `event.direkten_gol: true`, `event.cizgi`), geçmezse
+**DİREK** (`outcome: post`, `direkten_gol: false`). Aynı hata şut sapması kalibrasyonunu da etkilemişti: ölçek 0,332 → **0,432**
+(kaçan oranı yine %4,78; `kalibrasyon_sonuc.txt`). 1.1.0'da direkten ağlara giden top da "post" yazılıyordu (ekranda filede
+top + DİREK etiketi). Çelme kuralı aynı. Ayrıntı: MODEL.md bölüm 1 ve 5; ölçüm `../_tur3/tur3b_olcum/direk_olcum_*`.
+
 ## Dürüst sınırlar
 - [tur3b 2026-10-22] Balistik kaleciyle isabetli şutlarda Bar-Eli ağırlıklı kurtarış %15,4 (gerçek %14,7; eski yol %17,4),
   hiçbir sabit uyum için değiştirilmeden. Kalkış açısı, gövde eğimi, iniş kaybı ve kayma sürtünmesi varsayım.

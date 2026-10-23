@@ -28,7 +28,7 @@ import sys
 from statistics import NormalDist
 
 ENGINE_NAME = "sinek-penalti/oyun/penalty_model.py"
-ENGINE_VERSION = "1.1.0"  # [tur3b 2026-10-22] balistik kaleci + isteğe bağlı şut sapması
+ENGINE_VERSION = "1.1.1"  # [tur3b 2026-10-22] balistik kaleci + isteğe bağlı şut sapması; [tur4 2026-10-23] direkten gol
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # Keeper 'left/right' is HIS OWN left/right (Bar-Eli et al. 2007 convention).
@@ -638,6 +638,10 @@ def simulate_kick(cfg, kp, aim, speed, plan, keeper_x_scene=0.0):
     frame_miss = None
     caught_offset = None
     crossed_kp = crossed_goal = in_goal = False
+    # [tur4 2026-10-23] direkten gol (Kural 10): direk/üst direk vuruşu sonucu HEMEN belirlemez. İlk ahşap vuruşu olay
+    # olarak saklanır (ahsap); sonuç top kale çizgisini geçtiğinde verilir: çerçevenin içinden -> "goal" (direkten gol),
+    # dışından ya da hiç geçmezse -> "post". Kurtarıştan (çelme) sonra ahşap/çizgi sonucu değiştirmez (çelinen top girmez).
+    ahsap = None
     n_steps = int(round(phys["t_max_s"] / dt))
     km = cfg["keeper_model"]
     for i in range(1, n_steps + 1):
@@ -718,9 +722,10 @@ def simulate_kick(cfg, kp, aim, speed, plan, keeper_x_scene=0.0):
                 hit = woodwork_hit(phys, p, pn, v, vn, dt)
                 if hit:
                     name, f, pc, newv = hit
-                    if outcome is None:
-                        outcome = "post"
-                        event = {"type": name, "t": t + f * dt, "pos": [pc[0], pc[1], pc[2]]}
+                    if outcome is None and ahsap is None:
+                        # [tur4 2026-10-23] sonuç kale çizgisinde verilir (yukarıda); olay ilk ahşap vuruşu kalır
+                        ahsap = {"type": name, "t": t + f * dt, "pos": [pc[0], pc[1], pc[2]]}
+                        event = ahsap
                     rest = (1.0 - f) * dt
                     pn = (pc[0] + rest * newv[0], max(r, pc[1] + rest * newv[1]), pc[2] + rest * newv[2])
                     vn, rolling = newv, False
@@ -731,7 +736,12 @@ def simulate_kick(cfg, kp, aim, speed, plan, keeper_x_scene=0.0):
                 pc = lerp(p, pn, f)
                 inside = abs(pc[0]) < W and pc[1] < Hb
                 in_goal = inside
-                if outcome is None:
+                if outcome is None and ahsap is not None:
+                    # [tur4 2026-10-23] direk/üst direkten sonra çizgi: içeriden geçtiyse GOL (direkten gol), değilse direk
+                    outcome = "goal" if inside else "post"
+                    ahsap["direkten_gol"] = bool(inside)
+                    ahsap["cizgi"] = {"t": t + f * dt, "pos": [pc[0], pc[1], 0.0]}
+                elif outcome is None:
                     if inside:
                         outcome = "goal"
                     else:
@@ -746,8 +756,16 @@ def simulate_kick(cfg, kp, aim, speed, plan, keeper_x_scene=0.0):
         if i % samp == 0:
             traj.append([round(t, 4), round(p[0], 4), round(p[1], 4), round(p[2], 4)])
             if event is not None and t >= event["t"] + phys["post_event_s"]:
-                break
+                # [tur4 2026-10-23] ahşaptan sonra karar bekliyorsa (çizgi henüz geçilmedi) top kaleye dönebildiği sürece
+                # kesme: yalnız top çerçeveye artık değemeyecek kadar öndeyse ve kaleden uzaklaşıyor/duruyorsa bitir
+                if not (outcome is None and ahsap is not None
+                        and not (p[2] > r + 2 * phys["post_radius_m"] and v[2] >= 0.0)):
+                    break
 
+    if outcome is None and ahsap is not None:
+        # [tur4 2026-10-23] ahşaptan sonra top kale çizgisini hiç geçmedi (sahaya döndü ya da durdu): direk
+        outcome = "post"
+        ahsap["direkten_gol"] = False
     t_end = traj[-1][0]
     # keeper path at 60 fps, from keeper_path_start_s to the end of the ball trajectory
     path = []
@@ -766,6 +784,18 @@ def simulate_kick(cfg, kp, aim, speed, plan, keeper_x_scene=0.0):
         "keeper_gap": keeper_gap, "frame_miss": frame_miss,
         "speed_at_goal": (math.sqrt(sum(c * c for c in ff_goal[2])) if ff_goal else None),
     }
+
+
+def _event_out(ev):
+    """[tur4 2026-10-23] Log'daki olay. Direk/üst direk olaylarında EK alanlar: direkten_gol (true = top sonra kale
+    çizgisini çerçevenin içinden geçti, sonuç GOL; false = sonuç direk) ve cizgi (varsa çizgiyi geçtiği an ve yer).
+    type/t/pos aynı kaldı (ilk ahşap vuruşu), eski okuyucular bozulmaz; sonucu her zaman outcome söyler."""
+    out = {"type": ev["type"], "t": round(ev["t"], 4), "pos": [round(x, 3) for x in ev["pos"]]}
+    if "direkten_gol" in ev:
+        out["direkten_gol"] = bool(ev["direkten_gol"])
+        cz = ev.get("cizgi")
+        out["cizgi"] = ({"t": round(cz["t"], 4), "pos": [round(x, 3) for x in cz["pos"]]} if cz else None)
+    return out
 
 
 # --------------------------------------------------------------------------- Turkish explanation
@@ -796,10 +826,16 @@ def explain_tr(name, res, plan, kp):
     """[tur3b 2026-10-22] With option B the miss sentences say how far the kick strayed from the brain's aim."""
     txt = _explain_core(name, res, plan, kp)
     sc = res.get("scatter")
-    if sc and res["outcome"] in ("wide", "over", "post"):
+    # [tur4 2026-10-23] direkten golde de sapma söylenir (topu direğe gönderen sapmadır)
+    if sc and (res["outcome"] in ("wide", "over", "post") or _direkten_gol(res)):
         d = math.hypot(sc["err"][0], sc["err"][1])
         txt = f"Vuruş, sineğin nişanından {_dist_tr(d)} saptı. " + txt
     return txt
+
+
+def _direkten_gol(res):
+    ev = res.get("event") or {}
+    return res["outcome"] == "goal" and bool(ev.get("direkten_gol"))
 
 
 def _explain_core(name, res, plan, kp):
@@ -820,6 +856,12 @@ def _explain_core(name, res, plan, kp):
         side_kind = "wrong"
     rt = _num(kp["reaction_s"], 2)
     gap = res["keeper_gap"]
+    if _direkten_gol(res):
+        # [tur4 2026-10-23] direkten gol: top direğe/üst direğe çarpıp çizgiyi çerçevenin içinden geçti (Kural 10: gol)
+        where = "üst direğe" if res["event"]["type"] == "crossbar" else "direğe"
+        if res["contact"] and res["contact"].get("beaten"):
+            return f"Top {_num(res['event']['t'])} saniyede {where} çarpıp ağlara gitti; {name} topa dokundu ama şutu durduramadı."
+        return f"Top {_num(res['event']['t'])} saniyede {where} çarpıp ağlara gitti; {_genitive(name)} {_dist_tr(gap)} yetişemediği şut direkten gol oldu."
     if out == "goal" and res["contact"] and res["contact"].get("beaten"):
         kmh = int(round(res["contact"]["ball_speed_mps"] * 3.6))
         return f"Top {ftxt} saniyede kaleye vardı; {name} topa dokundu ama saatte {kmh} km hızla gelen şut elinden sıyrılıp ağlara gitti."
@@ -983,8 +1025,7 @@ def run(cfg, decisions, commit_sha=None, beacon=None):
             "outcome": res["outcome"],
             "margin_cm": int(round(margin * 100)) if margin is not None else None,
             "keeper_gap_cm": round(res["keeper_gap"] * 100, 1) if res["keeper_gap"] is not None else None,
-            "event": ({"type": res["event"]["type"], "t": round(res["event"]["t"], 4),
-                       "pos": [round(x, 3) for x in res["event"]["pos"]]} if res["event"] else None),
+            "event": (_event_out(res["event"]) if res["event"] else None),
             "explain": explain_tr(name, res, plan, kp),
         })
     cfg_sha = sha256_hex(canonical_json(cfg))

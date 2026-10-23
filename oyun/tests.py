@@ -95,6 +95,97 @@ def test_wide_over_post():
     assert r["outcome"] == "post" and r["event"]["type"] == "crossbar", r["event"]
 
 
+def _cizgi_gecisi(tr):
+    """[tur4 2026-10-23] yörüngenin kale çizgisini (z = 0) ilk geçişi: (x, y) ya da None."""
+    for a, b in zip(tr, tr[1:]):
+        if a[3] > 0.0 >= b[3]:
+            f = a[3] / (a[3] - b[3])
+            return (a[1] + f * (b[1] - a[1]), a[2] + f * (b[2] - a[2]))
+    return None
+
+
+def test_tur4_post_and_in_is_goal():
+    # [tur4 2026-10-23] Kural 10: direğin iç yüzüne çarpıp çizgiyi çerçevenin içinden geçen top GOL
+    W, Hb = CFG["physics"]["goal_half_width_m"], CFG["physics"]["crossbar_height_m"]
+    for x in (3.56, 3.60):
+        p = plan("right")
+        r = kick(x, 1.0, 25.0, p)
+        ev = r["event"]
+        assert r["outcome"] == "goal", (x, r["outcome"], ev)
+        assert ev["type"] == "post_left_of_keeper" and ev["direkten_gol"] is True, ev
+        cz = ev["cizgi"]
+        assert cz and abs(cz["pos"][0]) < W and cz["pos"][1] < Hb and cz["t"] > ev["t"], cz
+        g = _cizgi_gecisi(r["traj"])
+        assert g and abs(g[0]) < W and g[1] < Hb and r["traj"][-1][3] < 0.0      # top filede
+        lo = pm._event_out(ev)
+        assert lo["type"] == "post_left_of_keeper" and lo["direkten_gol"] is True and lo["cizgi"]["t"] > lo["t"]
+        assert "direğe çarpıp ağlara gitti" in pm.explain_tr("Uğurcan", r, p, KP)
+    # aynasi: kalecinin sağındaki direk
+    r = kick(-3.60, 1.0, 25.0, plan("left"))
+    assert r["outcome"] == "goal" and r["event"]["type"] == "post_right_of_keeper" and r["event"]["direkten_gol"]
+
+
+def test_tur4_post_and_out_stays_post():
+    # [tur4 2026-10-23] direkten sahaya dönen ya da çerçevenin dışından çizgiyi geçen top DİREK (ÇAKIR'a)
+    W, Hb = CFG["physics"]["goal_half_width_m"], CFG["physics"]["crossbar_height_m"]
+    for x in (3.63, 3.70, 3.80):
+        p = plan("right")
+        r = kick(x, 1.0, 25.0, p)
+        ev = r["event"]
+        assert r["outcome"] == "post" and ev["direkten_gol"] is False, (x, r["outcome"], ev)
+        g = _cizgi_gecisi(r["traj"])
+        assert g is None or not (abs(g[0]) < W and g[1] < Hb), (x, g)
+        assert "direk durdurdu" in pm.explain_tr("Uğurcan", r, p, KP)
+    r = kick(3.86, 1.0, 25.0, plan("right"))       # dış yüz: çizgiyi kalenin dışından geçer
+    assert r["outcome"] == "post" and r["event"]["cizgi"] and abs(r["event"]["cizgi"]["pos"][0]) > W
+
+
+def test_tur4_crossbar_in_and_out():
+    # [tur4 2026-10-23] üst direğin altına çarpıp içeri düşen top GOL; geri sekip sahaya dönen DİREK
+    Hb = CFG["physics"]["crossbar_height_m"]
+    for y in (2.34, 2.37):
+        p = plan("left")
+        r = kick(-1.0, y, 25.0, p)
+        assert r["outcome"] == "goal" and r["event"]["type"] == "crossbar" and r["event"]["direkten_gol"] is True, (y, r["event"])
+        assert r["event"]["cizgi"]["pos"][1] < Hb
+        assert "üst direğe çarpıp ağlara gitti" in pm.explain_tr("Uğurcan", r, p, KP)
+    for y in (2.42, 2.50):
+        r = kick(-1.0, y, 25.0, plan("left"))
+        assert r["outcome"] == "post" and r["event"]["type"] == "crossbar" and r["event"]["direkten_gol"] is False, (y, r["event"])
+
+
+def test_tur4_woodwork_never_cut_before_decision():
+    # [tur4 2026-10-23] post_event_s kesmesi, ahşaptan sonra kararı vermeden simülasyonu bitirmez: her ahşap vuruşunda ya
+    # çizgi geçilmiştir ya da top çerçeveye değemeyecek kadar öndedir ve kaleden uzaklaşıyor/duruyordur
+    ph = CFG["physics"]
+    lim = ph["ball_radius_m"] + 2 * ph["post_radius_m"]
+    n = 0
+    for i in range(40):
+        for x, y, d in ((3.50 + 0.01 * i, 1.0, "right"), (-1.0, 2.20 + 0.008 * i, "left"), (3.50 + 0.01 * i, 2.35, "right")):
+            r = kick(x, y, 25.0, plan(d))
+            ev = r["event"] or {}
+            if not (ev.get("type", "").startswith("post") or ev.get("type") == "crossbar"):
+                continue
+            n += 1
+            assert r["outcome"] in ("goal", "post") and "direkten_gol" in ev
+            assert (r["outcome"] == "goal") == bool(ev["direkten_gol"])
+            if ev.get("cizgi") is None:
+                a, b = r["traj"][-2], r["traj"][-1]
+                assert b[3] > lim - 1e-6 and b[3] - a[3] >= -1e-9, (x, y, a, b)
+    assert n >= 30, n
+
+
+def test_tur4_parry_then_woodwork_stays_save():
+    # [tur4 2026-10-23] çelme kuralı değişmedi: kurtarıştan sonra ahşap/çizgi sonucu değiştirmez
+    seen = 0
+    for i in range(60):
+        r = kick(2.6 + 0.02 * i, 1.0, 22.0, plan("left", -0.40, u_catch=0.99))
+        if r["outcome"] == "save":
+            seen += 1
+            assert r["event"]["type"] == "keeper" and "direkten_gol" not in r["event"]
+    assert seen > 0
+
+
 def test_determinism_same_seed():
     a = pm.dumps_readable(pm.run(CFG, STUB))
     b = pm.dumps_readable(pm.run(copy.deepcopy(CFG), copy.deepcopy(STUB)))
