@@ -7,7 +7,7 @@ PROVA7B (varsayılan; bu depodaki tatbikat, beklenen sonuç "PROVA DOĞRULANDI")
     macOS / Linux:         python3.12 -I araclar/dogrula.py
 
 Final (deney günü; --kod, --duyuru-sha ve --yayin-utc değerlerini KENDİN dış kaynaktan oku:
-sabitlenmiş gönderi, bir gün önceki duyuru, GitHub commit saati / OpenTimestamps):
+sabitlenmiş gönderi, duyuru, story / OpenTimestamps; git commit tarihi kanıt DEĞİL):
     python3.12 -I araclar/dogrula.py --taahhut veri/taahhut.json --config oyun/config_final.json \\
         --log veri/penalty_log.json --karar veri/beyin_kararlari.json --beacon-dosya veri/beacon.json \\
         --kod <TAM 64 karakter SHA-256> --duyuru-sha <duyuru özeti> --yayin-utc <2026-10-23T12:04:00Z>

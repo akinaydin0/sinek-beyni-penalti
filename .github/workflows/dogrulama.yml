@@ -6,6 +6,21 @@ name: dogrulama
 on:
   push:
   workflow_dispatch:
+    # [tur4 2026-10-23] Final günü: final dosyaları depoya eklenince elle tetiklenir (gh workflow run dogrulama
+    # -f kod=... -f duyuru_sha=... -f yayin_utc=...). Boş bırakılırsa yalnız prova doğrulanır.
+    inputs:
+      kod:
+        description: "FINAL: sabitlenmiş yorumdaki TAM 64 karakter taahhüt SHA-256"
+        required: false
+        default: ""
+      duyuru_sha:
+        description: "FINAL: duyuru özeti"
+        required: false
+        default: ""
+      yayin_utc:
+        description: "FINAL: taahhüdün açıkta ilk görüldüğü an (UTC, ör. 2026-10-23T10:05:00Z)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -69,6 +84,20 @@ jobs:
         id: dogrula
         continue-on-error: true
         run: python -I araclar/dogrula.py --beklenen prova --cikti ci_cikti/verify_${{ matrix.ad }}.txt --json ci_cikti/dogrula_${{ matrix.ad }}.json
+
+      - name: "4b) FINAL doğrula (yalnız elle tetiklenince, kod verildiyse)"
+        id: final
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.kod != ''
+        shell: bash
+        env:
+          KOD: ${{ inputs.kod }}
+          DUYURU: ${{ inputs.duyuru_sha }}
+          YAYIN: ${{ inputs.yayin_utc }}
+        run: |
+          python -I araclar/dogrula.py --taahhut veri/taahhut.json --config oyun/config_final.json \
+            --log veri/penalty_log.json --karar veri/beyin_kararlari.json --beacon-dosya veri/beacon.json \
+            --kod "$KOD" --duyuru-sha "$DUYURU" --yayin-utc "$YAYIN" --beklenen final \
+            --cikti ci_cikti/final_verify_${{ matrix.ad }}.txt --json ci_cikti/final_${{ matrix.ad }}.json
 
       - name: "tanı: cython hedefi (beyin_model.py'nin seçimi), süre ve ilk fark"
         if: always()

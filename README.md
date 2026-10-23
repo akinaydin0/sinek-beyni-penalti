@@ -48,7 +48,7 @@ Tam akış ve formüller: `oyun/README.md`, `oyun/MODEL.md`.
 Üç şey birlikte "sonuç seçilmedi" demektir. Biri eksikse "DOĞRULANDI" ekranı tek başına bir şey kanıtlamaz.
 
 1. **Taahhüt önceden herkese açıktı.** Bunu program kendisi bilemez. Taahhüdün tur N'den önce açıkta olduğunu
-   **sen** dış bir kaynaktan okursun (GitHub commit saati, sabitlenmiş gönderinin saati, OpenTimestamps) ve
+   **sen** dış bir kaynaktan okursun (sabitlenmiş yorumun / story'nin saati, OpenTimestamps kaydı) ve
    `--yayin-utc` olarak verirsin.
 2. **drand imzası geçerli.** Sahte bir rastgele değer, internet taklit edilse bile BLS kontrolünden geçmez.
 3. **Kendi makinende yeniden koşu.** `verify.py` sinek beynini ve motoru, taahhüt + beacon'dan hesapladığı tohum ve
@@ -138,8 +138,9 @@ verify.py sonucu: PROVA DOĞRULANDI (final sonuç DEĞİL) (çıkış 3)
 ### Final günü: bir taahhüdü doğrula
 
 `--kod`, `--duyuru-sha` ve `--yayin-utc` değerlerini **kendin** dış kaynaktan oku: TAM SHA-256 sabitlenmiş
-gönderiden, duyuru özeti bir gün önceki duyurudan, zaman bu depodaki commit'in GitHub saatinden ya da OpenTimestamps
-kaydından. Dosyalardan okuma; operatörün elinde olan dosyalar kanıt değildir.
+gönderiden, duyuru özeti duyurudan, zaman sabitlenmiş yorumun / story'nin saatinden ya da OpenTimestamps kaydından.
+Git commit tarihi kanıt değildir: commit'i yapan onu istediği gibi yazabilir. Dosyalardan okuma; operatörün elinde
+olan dosyalar kanıt değildir.
 
 ```bash
 python3.12 -I araclar/dogrula.py --taahhut veri/taahhut.json --config oyun/config_final.json \
@@ -157,25 +158,32 @@ PowerShell'de tek satır yaz ya da satır sonuna `` ` `` koy). Beklenen son sat�
 `.github/workflows/dogrulama.yml` her değişiklikte üç işletim sisteminde aynı dört adımı çalıştırır ve sinek
 beyninin spike'larının Mac referansıyla bit bit aynı olup olmadığını raporlar. Son koşular: depodaki **Actions** sekmesi.
 
-Ölçüm (22 Ekim 2026, Python 3.12.10, aynı 25 paket; depo `sinek deneme ç` adlı boşluklu klasörde çalıştı):
+Ölçüm: **PROVA7B**, 23 Ekim 2026, Actions koşusu 39884328955 (Python 3.12.10, aynı 25 paket; depo `sinek deneme ç`
+adlı boşluklu, Türkçe karakterli klasörde çalıştı):
 
 | | Windows Server 2025 (x64) | macOS 26 (arm64) | Ubuntu 24.04 (x64) | Referans: Akın'ın Mac'i (M2 Pro) |
 |---|---|---|---|---|
 | Derleyici (Brian2 Cython) | MSVC `/Ox /arch:AVX2` | clang `-O3 -ffast-math -march=native` | gcc `-O3 -ffast-math -march=native` | clang, aynı bayraklar |
+| Testler (`oyun/tests.py`) | 29/29 | 29/29 | 29/29 | 29/29 |
+| Duyuru özeti | `ab65e95b…` | `ab65e95b…` | `ab65e95b…` | `ab65e95b…` |
 | `verify.py` sonucu | PROVA DOĞRULANDI | PROVA DOĞRULANDI | PROVA DOĞRULANDI | PROVA DOĞRULANDI |
 | Sinek beyni, 5 şut | **5/5 bit bit aynı** | **5/5 bit bit aynı** | **5/5 bit bit aynı** | (referans) |
 | Kontrol satırları Mac çıktısıyla | aynı | aynı | aynı | — |
-| Brian2 numpy hedefiyle (derleyicisiz) | 5/5 aynı | 5/5 aynı | 5/5 aynı | 5/5 aynı |
-| Süre/şut: cython · numpy | 5,0 s · 44 s | 3,0 s · 12,9 s | 4,1 s · 14,5 s | 3,0 s · 10,4 s |
-| Kurulum · indirme · testler · doğrulama | 64 · 2 · 12 · 73 s | 45 · 1 · 12 · 51 s | 46 · 1 · 19 · 53 s | — |
+| Brian2 numpy hedefiyle (derleyicisiz) | 5/5 aynı | 5/5 aynı | 5/5 aynı | — |
+| Süre/şut: cython · numpy | 10,3 s · 80 s | 2,7 s · 11,2 s | 4,3 s · 27 s | — |
+| Kurulum · indirme · testler · doğrulama | 119 · 6 · 28 · 133 s | 39 · 2 · 14 · 39 s | 38 · 3 · 24 · 54 s | doğrulama 37 s (boş önbellekle) |
 
 - "Bit bit aynı": her şutta bütün spike'ların (nöron numarası + zaman) SHA-256'sı, 14 nöron grubunun sayıları,
   steer, nişan, hız ve karar süresi Mac'tekiyle aynı; raster dosyaları da aynı.
-- Derleyicisiz deneme (Linux, `CC=/bin/false`): doğrulama **DOĞRULANAMADI** dedi; sessizce geçmedi.
-- Türkçe 8-bit yerel ayar benzetimi (Linux, ISO-8859-9 = cp1254 gibi): düz Python ile **DOĞRULANAMADI**
-  (`'utf-8' codec can't decode byte 0xfe`); `-X utf8` kalkanıyla PROVA DOĞRULANDI.
+- Derleyicisiz deneme (Linux, `CC=/bin/false`, boş derleme önbelleği): doğrulama **DOĞRULANAMADI** dedi, sessizce
+  geçmedi; CI sebebin derleme komutu olduğunu da kontrol eder. Hatadaki iki kez tekrarlanan
+  `…/brian_extensions/…/brian_extensions/….o` yolu normaldir (Windows notları).
+- Türkçe 8-bit yerel ayar benzetimi (Linux, ISO-8859-9 = cp1254 gibi): kalkan bilerek kapatılınca **DOĞRULANAMADI**
+  (`'utf-8' codec can't decode byte 0xfe`); README'deki komut (`dogrula.py`, kalkanı kendisi kullanır) bunu önler.
+  Aynı benzetim Akın'ın Mac'inde de (tr_TR.ISO8859-9) ölçüldü: kalkansız DOĞRULANAMADI, varsayılanla PROVA DOĞRULANDI.
 - Windows'ta Brian2 bir paket daha kurar (`py-cpuinfo==9.0.0`); `verify.py` bunu UYARI satırında gösterir.
-- Sınır: bu, PROVA5'in 5 şutu ve bu CI makineleri için bir ölçümdür. Başka bir işlemci ya da derleyici sürümü
+- Önceki ölçüm (22 Ekim, PROVA5, eski motor): aynı üç sistemde yine 5/5 bit bit aynıydı.
+- Sınır: bu, PROVA7B'nin 5 şutu ve bu CI makineleri için bir ölçümdür. Başka bir işlemci ya da derleyici sürümü
   için kanıt değildir; bu yüzden herkesin kendi makinesinde koşturması isteniyor. Tutmazsa `verify.py` HATA verir.
 
 ## Windows notları (neden bu betikler var?)
@@ -255,7 +263,8 @@ random side; the shifts and the brain seed come from drand quicknet round N, pub
 resolved and published.
 
 **What verification proves.** (1) that the commitment was public before round N: *you* read that time from an
-external source (GitHub commit time, pinned post, OpenTimestamps) and pass it as `--yayin-utc`; (2) that the drand
+external source (time of the pinned comment / story, OpenTimestamps record; a git commit date is NOT evidence, the
+committer sets it) and pass it as `--yayin-utc`; (2) that the drand
 value is genuine (BLS); (3) that the brain and engine, re-run **on your machine** with the seed and keeper positions
 derived from commitment + beacon, reproduce every number, including a SHA-256 over all brain spikes. A screenshot of
 "DOĞRULANDI" from the operator's machine proves nothing. Caveat: the rules were chosen after the fly was measured
@@ -287,15 +296,18 @@ path; `.gitattributes` `* -text` so git does not turn LF into CRLF (which would 
 paths with spaces and non-ASCII characters (CI runs from a folder called `sinek deneme ç`). If your Windows user
 name has non-ASCII characters and compilation fails, set `$env:CYTHON_CACHE_DIR = "C:\cython_cache"`.
 
-**Cross-platform results (measured 22 Oct 2026, GitHub Actions, Python 3.12.10, same 25 packages).** On Windows
-Server 2025 x64 (MSVC `/arch:AVX2`), macOS 26 arm64 (clang) and Ubuntu 24.04 x64 (gcc, `-ffast-math -march=native`)
-`verify.py` gave `PROVA DOĞRULANDI` and the brain re-run was **bit-identical to the Mac reference in 5 of 5 kicks**
-(SHA-256 over all spikes, all counts, aim, speed, decision time, rasters). Brian2's numpy target (no compiler) was
-also identical on all three. Time per kick, cython vs numpy: Windows 5.0 s vs 44 s, macOS 3.0 s vs 12.9 s, Linux
-4.1 s vs 14.5 s. Without a compiler the verification fails (`DOĞRULANAMADI`), it does not pass silently. With a
-Turkish 8-bit locale (ISO-8859-9, like Windows cp1254) the brain subprocess output breaks UTF-8 decoding unless the
-`-X utf8` launcher is used (measured). This is a measurement for these 5 kicks on these machines, not a proof for
-every CPU/compiler, which is why everyone is asked to re-run it themselves.
+**Cross-platform results (PROVA7B, measured 23 Oct 2026, GitHub Actions run 39884328955, Python 3.12.10, same 25
+packages).** On Windows Server 2025 x64 (MSVC `/arch:AVX2`), macOS 26 arm64 (clang) and Ubuntu 24.04 x64 (gcc,
+`-ffast-math -march=native`) all 29 tests passed, the announcement digest was `ab65e95b…`, `verify.py` gave
+`PROVA DOĞRULANDI` and the brain re-run was **bit-identical to the Mac reference in 5 of 5 kicks** (SHA-256 over all
+spikes, all counts, aim, speed, decision time, rasters). Brian2's numpy target (no compiler) was also identical on all
+three. Time per kick, cython vs numpy: Windows 10.3 s vs 80 s, macOS 2.7 s vs 11.2 s, Linux 4.3 s vs 27 s. Without a
+compiler the verification fails (`DOĞRULANAMADI`), it does not pass silently; the doubled
+`…/brian_extensions/…/brian_extensions/….o` path in that error is setuptools' normal object-file naming, not the
+cause. With a Turkish 8-bit locale (ISO-8859-9, like Windows cp1254) the brain subprocess output breaks UTF-8 decoding
+unless the UTF-8 launcher is used; `araclar/dogrula.py` uses it by default (measured on Linux CI and on a Mac). This is
+a measurement for these 5 kicks on these machines, not a proof for every CPU/compiler, which is why everyone is asked
+to re-run it themselves.
 
 **License.** Project code: MIT (`LICENSE`). Third-party code and data are not included; licenses and required
 citations (Shiu et al. MIT; FlyWire v783 CC BY 4.0 with Dorkenwald 2024, Schlegel 2024, Zheng 2018, Buhmann 2021,

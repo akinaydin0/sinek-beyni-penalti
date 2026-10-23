@@ -87,7 +87,11 @@ UTF8_SH = os.path.join(VENV, "bin", "python_utf8")
 UTF8_SH_ICERIK = ("#!/bin/sh\n"
                   "# [tur4 2026-10-23] Runs the brain venv Python in UTF-8 mode (-X utf8). Text encoding only.\n"
                   "exec \"$(dirname \"$0\")/python\" -X utf8 \"$@\"\n")
-KALKAN_KONTROL = "import sys,json;print(json.dumps([sys.flags.utf8_mode, sys.prefix]))"
+# [tur4 2026-10-23] yol, BAYT olarak (hex) karşılaştırılır: 8-bit yerel ayarlı Linux'ta bu süreç yolu ISO-8859-9 ile,
+# -X utf8'li alt süreç UTF-8 ile çözer ("ç" -> "Ã§"); metin olarak karşılaştırmak kalkanı yanlışlıkla reddediyordu
+# (CI 39884328955, Linux Latin-5 benzetimi). Diskteki baytlar ikisinde de aynıdır.
+KALKAN_KONTROL = ("import sys,os,json;print(json.dumps([sys.flags.utf8_mode, "
+                  "os.fsencode(os.path.realpath(sys.prefix)).hex()]))")
 
 
 def utf8_kalkani():
@@ -110,8 +114,9 @@ def utf8_kalkan_kur():
         utf8, prefix = json.loads(p.stdout.decode("utf-8").strip().splitlines()[-1])
     except (OSError, ValueError, IndexError, subprocess.SubprocessError) as e:
         return None, f"python_utf8 çalışmadı: {e}"
-    if p.returncode != 0 or utf8 != 1 or os.path.realpath(prefix) != os.path.realpath(VENV):
-        return None, f"python_utf8 beklenen ortamı vermedi (utf8_mode {utf8}, prefix {prefix})"
+    if p.returncode != 0 or utf8 != 1 or prefix != os.fsencode(os.path.realpath(VENV)).hex():
+        return None, (f"python_utf8 beklenen ortamı vermedi (utf8_mode {utf8}, prefix "
+                      f"{bytes.fromhex(prefix).decode('utf-8', 'replace') if prefix else prefix})")
     return UTF8_SH, "tamam (utf8_mode 1, prefix beyin/.venv)"
 
 
