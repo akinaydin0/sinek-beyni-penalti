@@ -5,6 +5,9 @@ sonucu `penalty_log.json` olarak yazar (biçim: `../SOZLESME.md`). Hiçbir sonu�
 kalecinin yönü ve çıkış zamanı her şut için önceden yazılmış seed'den, şut bilinmeden çekilir.
 
 Saf Python 3, ek paket yok. Aynı girdiler her zaman bayt bayt aynı çıktıyı verir.
+[tur3b 2026-10-22] Kaleci dalışı balistik (itme, yerçekimiyle uçuş, iniş, kayma; `MODEL.md` bölüm 2) ve isteğe bağlı
+şut sapması (seçenek B, `config_sablon.json` → `sut_sapmasi.acik`, varsayılan KAPALI; `MODEL.md` bölüm 8).
+B'nin hazır şablonu (proje kökünden): `_tur3/oyun_B/config_sablon.json` (tek fark `acik: true` ve not satırı).
 Formüller ve kaynaklar: `MODEL.md`. Kaynak listesi: `LISANSLAR.md`.
 
 ## Dosyalar
@@ -19,15 +22,15 @@ Formüller ve kaynaklar: `MODEL.md`. Kaynak listesi: `LISANSLAR.md`.
 | `bls12381.py` | [tur3] Bağımlılıksız saf Python BLS12-381 imza doğrulayıcı (RFC 9380 hash_to_curve, eşleştirme); drand quicknet için |
 | `beyin_yeniden.py` | [tur3] verify.py'nin beyin yeniden koşusu (beynin kendi venv'iyle, dosya yazmaz) |
 | `bagimsiz/kontrol.mjs` | [tur3] Bağımsız JavaScript uygulaması: kaymalar, beyin tohumu, kaleci seed'leri (yalnız Node crypto) |
-| `tests.py` | 22 test (11 motor + 11 tur3; düz betik, pytest gerekmez, ağa çıkmaz) |
-| `olasilik.py` | [tur3] TAHMİN: beynin gerçek nişan dağılımı + yeni motorla 20.000 seri Monte Carlo (sonuç DEĞİL) |
-| `kalibrasyon.py` | Modeli gerçek penaltı istatistikleriyle (Bar-Eli 2007, Hunter 2018) kıyaslar; sonuç: `kalibrasyon_sonuc.txt` |
+| `tests.py` | 29 test (11 motor + 11 tur3 + 7 tur3b; düz betik, pytest gerekmez, ağa çıkmaz) |
+| `olasilik.py` | [tur3] TAHMİN: beynin gerçek nişan dağılımı + yeni motorla 20.000 seri Monte Carlo (sonuç DEĞİL); [tur3b] `--sapma kapali|acik` = seçenek A/B |
+| `kalibrasyon.py` | Modeli gerçek penaltı istatistikleriyle (Bar-Eli 2007, Hunter 2018) kıyaslar; sonuç: `kalibrasyon_sonuc.txt`; [tur3b] `--sapma-kalibre`: şut sapması ölçeğini gerçek kaçan oranına (Vollmer 2024) kalibre eder |
 | `stub/stub_beyin_kararlari.json` | SAHTE karar dosyası (Godot/Blender geliştirmesi için) |
 
 ## Çalıştırma
 ```bash
 cd "sinek-penalti/oyun"
-python3.12 -I tests.py                     # 19/19
+python3.12 -I tests.py                     # 29/29
 python3.12 -I penalty_model.py --karar stub/stub_beyin_kararlari.json --config config_prova.json \
     --taahhut ../veri/taahhut_prova.json --cikti ../veri/ornek_penalty_log.json
 python3.12 -I kalibrasyon.py
@@ -61,6 +64,10 @@ DOĞRULANAMADI alır: taahhütlerinde kod özetleri, sabit drand bilgisi ve beac
 o dosyalar eski `verify.py` ile (`oyun/` takastan önceki hâli, `_tur3/_kurcalama/temiz/oyun`) doğrulanır.
 
 ## Dürüst sınırlar
+- [tur3b 2026-10-22] Balistik kaleciyle isabetli şutlarda Bar-Eli ağırlıklı kurtarış %15,4 (gerçek %14,7; eski yol %17,4),
+  hiçbir sabit uyum için değiştirilmeden. Kalkış açısı, gövde eğimi, iniş kaybı ve kayma sürtünmesi varsayım.
+- [tur3b] Şut sapması (B) laboratuvar verisinin (Hunter 2018) biçimini kullanır, büyüklüğü maç verisine (%4,78 kaçan)
+  kalibre edilmiştir; modelde kaçanların çoğu direk (gerçekte direk/aut oranı daha dengeli olabilir, MODEL.md bölüm 8).
 - [tur3 2026-10-22] Aşağıdaki iki madde tur3 şablonunda ÇÖZÜLDÜ: Hunter modeli açık (isabetli şutlarda Bar-Eli
   ağırlıklı kurtarış %17,4) ve kalecinin yeri beyin ile motorda aynı (merkeze çekilme 0). Sonuç: **Positioning 80
   artık motorda hiçbir sayıyı değiştirmiyor.** BLS imzası `bls12381.py` ile kontrol ediliyor (bkz. `../_tur3/YENI_AKIS.md`).

@@ -2,7 +2,7 @@
 """[tur3b 2026-10-22] ADIM 4: bir taahhüdü doğrula: oyun/verify.py'yi DEĞİŞTİRMEDEN, sinek beyninin yeniden
 koşusuyla birlikte çalıştırır ve sonucu düz dille özetler.
 
-Prova5 (varsayılan; bu depodaki tatbikat, beklenen sonuç "PROVA DOĞRULANDI"):
+PROVA7B (varsayılan; bu depodaki tatbikat, beklenen sonuç "PROVA DOĞRULANDI"):
     Windows (PowerShell):  py -3.12 -I araclar\\dogrula.py
     macOS / Linux:         python3.12 -I araclar/dogrula.py
 
@@ -14,10 +14,14 @@ sabitlenmiş gönderi, bir gün önceki duyuru, GitHub commit saati / OpenTimest
 
 Ne yapar:
   - verify.py'yi '-I -X utf8' ile çalıştırır (Windows'ta Türkçe çıktı ve Node kontrolü için UTF-8 şart).
-  - Beyin Python'unu işletim sistemine göre verir (--beyin-python): Windows beyin\\.venv\\Scripts\\python.exe.
+  - Beyin Python'unu işletim sistemine göre verir (--beyin-python): UTF-8 kalkanı, yani aynı venv Python'u '-X utf8'
+    ile başlatan küçük betik (Windows beyin\\.venv\\python_utf8.cmd, macOS/Linux beyin/.venv/bin/python_utf8).
+    [tur4 2026-10-23] Kalkansız, 8-bit kod sayfalı sistemde (Türkçe Windows cp1254, ISO-8859-9 Linux) beyin alt
+    süreci 'ş' harfini 0xFE yazar, verify.py UTF-8 bekler ve 'beyin yeniden koşusu başarısız' der.
   - verify.py'nin çıktısından her şut için "spike'lar Mac referansıyla bit bit aynı mı" sonucunu çıkarır.
     (Karar dosyası Mac'te üretildi; verify beyni yeniden koşturup spike özetini ona karşı kontrol eder.)
-  - Prova5'te çıktıyı Mac'in kendi verify çıktısıyla (veri/prova5/prova5_verify_cikti.txt) satır satır karşılaştırır.
+  - Provada çıktıyı Mac'in kendi verify çıktısıyla (veri/prova7B/prova7B_verify_cikti.txt) satır satır karşılaştırır.
+  - [tur4 2026-10-23] Beyin koşturulamazsa sebebi düz dille söyler (derleyici / metin kodlaması).
 """
 from __future__ import annotations
 
@@ -70,13 +74,13 @@ def main():
     ortak.python_kontrol()
 
     dosyalar = [a.taahhut, a.config, a.log, a.karar, a.beacon_dosya]
-    prova5 = not any(dosyalar)
-    if prova5:
-        p = ortak.PROVA5
+    prova = not any(dosyalar)
+    if prova:
+        p = ortak.PROVA
         args = ["--taahhut", p["taahhut"], "--config", p["config"], "--log", p["log"], "--karar", p["karar"],
                 "--beacon-dosya", p["beacon"], "--kod", a.kod or p["kod"],
                 "--duyuru-sha", a.duyuru_sha or p["duyuru_sha"], "--yayin-utc", a.yayin_utc or p["yayin_utc"]]
-        print("PROVA5 doğrulanıyor (tatbikat). --kod / --duyuru-sha / --yayin-utc değerleri _tur3/YENI_AKIS.md'den;")
+        print(f"{p['ad']} doğrulanıyor (tatbikat). --kod / --duyuru-sha / --yayin-utc değerleri _tur3/DEGISIKLIK.md'den;")
         print("finalde bunları doğrulayan KENDİSİ dış kaynaktan okur.")
     else:
         if not all(dosyalar):
@@ -87,7 +91,8 @@ def main():
             if v:
                 args += [ad, v]
     bpy = a.beyin_python or ortak.dogrulama_beyin_python()
-    print(f"beyin Python'u: {bpy}")
+    print(f"beyin Python'u: {bpy}" + ("" if a.beyin_python or bpy == ortak.utf8_kalkani() else
+                                      "  (UYARI: UTF-8 kalkanı yok; 8-bit kod sayfalı sistemde beyin koşusu düşebilir)"))
     if not os.path.exists(bpy):
         print(f"UYARI: beyin Python'u yok ({bpy}); önce araclar/kur.py. verify beyni yeniden KOŞTURAMAZ.")
     args += ["--beyin-python", bpy]
@@ -115,8 +120,8 @@ def main():
     uyarilar = [s[7:] for s in cikti.splitlines() if s.startswith("UYARI  ")]
 
     mac_farki = None
-    if prova5 and os.path.isfile(ortak.PROVA5["mac_cikti"]):
-        with open(ortak.PROVA5["mac_cikti"], encoding="utf-8") as f:
+    if prova and os.path.isfile(ortak.PROVA["mac_cikti"]):
+        with open(ortak.PROVA["mac_cikti"], encoding="utf-8") as f:
             ref = satir_kumesi(f.read())
         bu = satir_kumesi(cikti)
         mac_farki = {"yalniz_mac": [s for s in ref if s not in bu], "yalniz_bu": [s for s in bu if s not in ref]}
@@ -135,6 +140,18 @@ def main():
         print("sinek beyni: yeniden koşu satırı YOK (beyin koşturulamadı; yukarıdaki HATA satırlarına bak)")
     for h in hatalar:
         print(f"   HATA: {h}")
+    # [tur4 2026-10-23] beyin koşturulamadıysa sebebi düz dille (verify.py hatanın yalnız son 300 karakterini verir)
+    beyin_hata = " ".join(h for h in hatalar if "beyin yeniden koşusu" in h)
+    if "codec can't decode" in beyin_hata or "UnicodeDecodeError" in beyin_hata:
+        print("   NEDEN: beyin alt sürecinin metin kodlaması UTF-8 değil (8-bit kod sayfası, ör. Türkçe Windows cp1254).\n"
+              "          Çözüm: --beyin-python VERMEDEN çalıştır; dogrula.py UTF-8 kalkanını (python_utf8) kendisi kullanır.\n"
+              "          Windows'ta kalkan yoksa önce araclar\\kur.py.")
+    elif "_cython_magic_" in beyin_hata or "CompileError" in beyin_hata or "LinkError" in beyin_hata:
+        print("   NEDEN: Brian2 sinek beyninin C++ kodunu derleyemedi (C/C++ derleyici yok ya da çalışmıyor).\n"
+              "          Hatadaki uzun '-o …/brian_extensions/…/brian_extensions/….o' yolu NORMALDİR (setuptools ara\n"
+              "          dosyayı böyle adlandırır), sebep o değil. araclar/kur.py'yi yeniden çalıştır: son adımdaki\n"
+              "          derleme denemesi neyin eksik olduğunu söyler. Yolunda Türkçe karakter varsa CYTHON_CACHE_DIR'i\n"
+              "          ASCII bir klasöre al (README, Windows notları).")
     for u in uyarilar:
         print(f"   UYARI: {u}")
     if mac_farki is not None:
@@ -153,7 +170,7 @@ def main():
             "makine": platform.machine(), "python": sys.version.split()[0], "verify_cikis": kod, "etiket": etiket,
             "verify_sure_s": round(sure, 1), "beyin": {str(k): v for k, v in sorted(beyin.items())},
             "beyin_5_te_5_ayni": tamam_beyin, "beyin_python": bpy, "hatalar": hatalar, "uyarilar": uyarilar, "mac_farki": mac_farki,
-            "prova5": prova5}
+            "prova": ortak.PROVA["ad"] if prova else None}
     if a.json:
         with open(a.json, "w", encoding="utf-8", newline="\n") as f:
             json.dump(ozet, f, ensure_ascii=False, indent=1)

@@ -1,8 +1,8 @@
 {
- "duyuru_ozeti_sha256": "572bbd8a487ac49c87020e760b695e9afc930517ce92e1063c9f9e39bb0fe775",
- "kural_ozeti_sha256": "ea3c4e3d5a24bef7b1a8d2e523e4bb85be92607d657aa55f5ad5bbf8ff773c43",
+ "duyuru_ozeti_sha256": "ab65e95be6b8ff29b9713e8481f4c8a93a1f4af5dcf2e00902bdfce687b51cf2",
+ "kural_ozeti_sha256": "2d5f24600f42c83ac68837c8bad9d7efebc679065ebcae53d54cd498c29d939d",
  "kurallar": {
-  "kural_surumu": "tur3b-2026-10-22",
+  "kural_surumu": "tur3b-ucus-2026-10-22",
   "keeper": {
    "name": "Uğurcan Çakır",
    "first_name": "Uğurcan",
@@ -44,6 +44,20 @@
    "kural": "[tur3 2026-10-22] Beyin 5 şut atar. Şut n'de kaleci keeper_shift kuralının verdiği x'te durur. Tohum tabanı beacon'dan: seed_base = int(SHA-256('<randomness>|<taahhüt SHA-256>|beyin|seed_base') onaltılık ilk 8 hane, 16) mod 4000000000; trial_seed = seed_base + n (kick.py). Komut: beacon.py kaymalar basar: kick.py --final --n 5 --seed-base <seed_base> --keeper-x=<5 kayma> --commit-sha256 <taahhüt>."
   },
   "skor_kurali": "[tur3 2026-10-22] gol -> SİNEK +1; kurtarış, direk, aut (wide) ve üstten aut (over) -> ÇAKIR +1. 5 şutun hepsi sayılır, yeniden deneme yok. SİNEK en az 3 golle kazanır.",
+  "sut_sapmasi": {
+   "acik": true,
+   "surum": "sapma-v1",
+   "teknik": "side-foot (iç taraf)",
+   "delta_h": 0.5056909,
+   "alpha_h_zemin": 0.123205,
+   "alpha_h_yuksek": 0.138678,
+   "delta_v": 2.057649,
+   "alpha_v_zemin": 0.000594,
+   "alpha_v_yuksek": 0.001372,
+   "yukseklik_ref_m": 1.6,
+   "olcek": 0.332,
+   "kural": "[tur3b 2026-10-22] SEÇENEK B (varsayılan KAPALI). Açıksa beynin nişanı 'niyet' sayılır ve ayak sabit, önceden kayıtlı bir yürütme hatası ekler: u1 = U(kseed, 'kick<n>|sapma_u1'), u2 = U(kseed, 'kick<n>|sapma_u2') (kseed = şut n'nin beacon karışmış kaleci seed'i); z1 = sqrt(-2 ln u1)·cos(2π u2), z2 = sqrt(-2 ln u1)·sin(2π u2); f = kırp(nişan_y / yukseklik_ref_m, 0, 1); σx = olcek·(alpha_h_zemin + (alpha_h_yuksek - alpha_h_zemin)·f)·hız^delta_h; σy = olcek·(alpha_v_zemin + (alpha_v_yuksek - alpha_v_zemin)·f)·hız^delta_v; gerçek nişan = niyet + (σx·z1, σy·z2). Alpha/delta: Hunter ve ark. 2018 (J Biomech 72:159-166), iç taraf vuruşu, yerdeki ve 1,6 m'deki hedef. olcek: gerçek maç verisine (kaleyi bulmayan penaltı oranı) kalibrasyon, MODEL.md bölüm 8. Aut, üstten aut ve direk ÇAKIR'a sayılır. Sonuçlar görülmeden sabitlendi; sonradan ayar yok."
+  },
   "physics": {
    "g": 9.81,
    "rho_air": 1.2,
@@ -87,8 +101,6 @@
    "dive_ref_rating": 75,
    "dive_speed_per_point": 0.01,
    "push_time_s": 0.4,
-   "travel_frac_ref": 0.795,
-   "travel_frac_per_point": 0.003,
    "com_height_frac": 0.52,
    "leg_frac": 0.52,
    "torso_frac": 0.27,
@@ -120,21 +132,35 @@
     "a": -0.0447,
     "b": 1.72,
     "kaynak": "[tur3 2026-10-22] Akın kararı: AÇIK. Hunter ve ark. 2018: menzil içindeki topu durdurma olasılığı P = kırp(a·v_şut + b): 20 m/s %82,6, 30 m/s %37,9. Temas olup durduramazsa sonuç gol (beaten)."
+   },
+   "ucus": {
+    "surum": "balistik-v1",
+    "toe_frac": 0.08,
+    "leg_angle_takeoff_deg": 65.0,
+    "torso_lean_takeoff_deg": 40.0,
+    "sidestep_lift_m": 0.05,
+    "landing_keep_h": 0.5,
+    "slide_mu": 0.5,
+    "step_time_min_s": 0.25,
+    "crouch_com_min_m": 0.5,
+    "hand_settle_delay_s": 0.15,
+    "reach_ref_t_s": 0.5,
+    "not": "[tur3b 2026-10-22] Balistik dalış (MODEL.md bölüm 2): itme (push_time_s) boyunca ayaklar yerde, ağırlık merkezi (COM) yana sabit ivmeyle kalkış hızına (dive_speed: Diving'den) çıkar, dikeyde önce çöküp (countermovement) kalkar; uçuşta COM bir mermi gibi gider (yatay hız sabit, dikey ivme -g); COM yatma yüksekliğine inince iner, sürtünmeyle kayıp durur. Eski 'yatay uçup havada duran' yol ve travel_frac_* (yol sınırı) kaldırıldı. Kaynaklar ve varsayımlar MODEL.md'de."
    }
   }
  },
  "kod_ozetleri": {
-  "oyun/penalty_model.py": "a9be522a77aa444ae64dbc70340166df0f88f11c2ecd14a497690d03345d04dc",
-  "oyun/commit.py": "1278f53c1adbbea931a057b8a1c0c0979e3d8f53659e0509d3aa0cf0c8098dae",
+  "oyun/penalty_model.py": "579814428d8e24c16bd21b97da5f14caa6cd97f463b75aa58c44819bbf9db252",
+  "oyun/commit.py": "5e09b6bfc7757affccf2bb2acd6c7ac8bde55e5f8351436294043d050f9cdd09",
   "oyun/beacon.py": "9f141f8196375867801c790eb377d45737314c00bda2dbcc2ad20849470c69a0",
-  "oyun/verify.py": "1cc38abf26623276a4cfab0f57c62dd20b88bad263963e8eae441a60e73cb36b",
+  "oyun/verify.py": "b399837a50e48d88c04e26f1eb8dbb84d68467d4e997330a2830eccb09a04751",
   "oyun/bls12381.py": "06076127629429c1d8f000c327e6b0431ba81f86224d658314e92d20146a588b",
   "oyun/beyin_yeniden.py": "f54a7fb63d992e84fe0a616f6ba91b14f822d749bd691ef463672605f31387be",
-  "oyun/tests.py": "97250a9ffd94a0677a05534ade11ca44189246f6ce68133ac251661663291fbc",
-  "oyun/olasilik.py": "a7836d71b37fa6e71bcdd9dce474e4e5559aa33432817279930ce9fe6d4c65f0",
-  "oyun/kalibrasyon.py": "072d2ede6cf75e3f1da30e42ab5f64ef87138fe6e140ce9825ec8eea3a9aba82",
-  "oyun/config_sablon.json": "ec336d3fb9a42cb6484dceab7e91f641ba07af91a411a2627a7298f84130a4ac",
-  "oyun/bagimsiz/kontrol.mjs": "5c120eed67ffcd47e7b383df5282eb9cf1c0c853f1bd2c485bb585f0ac5e870b",
+  "oyun/tests.py": "0b7ca8ad59385675a063e8714132c0b3842006827f019e3df5d060fc25ae19bd",
+  "oyun/olasilik.py": "763e82f16fafb132d814b6941f77ce73d917e3f8992d961674a41fea1414a8db",
+  "oyun/kalibrasyon.py": "3d80a02038712745600c18a108ba02e0fe6ef41e561661c004e96aafc6fa0f84",
+  "oyun/config_sablon.json": "69d0e5398466256cd372593214f2a8af9e66c6506e976ed101f5ee82e265aeab",
+  "oyun/bagimsiz/kontrol.mjs": "7e552016b6b2f85cdf23b4974bf825026be8cd0f3ee28a21310d3a8735837249",
   "beyin/kick.py": "2663c5bf5968c67f9f7cea46bf2fc44574d5a43877064f8c22f5cff1b3c16953",
   "beyin/beyin_model.py": "d4cf8ff717452c77f56bebbc083247108aef992b89baf0f8ff5356e3ab4ccef0",
   "beyin/ortam.py": "c099037bc57bd616551cb7110ccf87b1fac0787eddf7b360d5f6f8cdb84bb1f6",

@@ -48,6 +48,31 @@ if (logPath && decPath) {
   console.log(`beyin tohumları = beacon'dan: ${c3 ? 'AYNI' : 'FARKLI'}`);
   console.log(`log keeper_seeds = beacon'dan: ${c4 ? 'AYNI' : 'FARKLI'}`);
   ok &&= c1 && c2 && c3 && c4;
+  // [tur3b 2026-10-22] şut sapması (seçenek B): u1, u2 kaleci seed'inden; Box-Muller; σ Hunter 2018 · olcek
+  const sc = t.payload.config.sut_sapmasi;
+  if (sc && sc.acik === true) {
+    let c5 = true;
+    log.kicks.forEach((k, i) => {
+      const n = k.n, ks = kseeds[n - 1].toString(), a = dec.kicks[i].aim, v = dec.kicks[i].speed_mps;
+      const u1 = U(ks, `kick${n}|sapma_u1`), u2 = U(ks, `kick${n}|sapma_u2`);
+      const rad = Math.sqrt(-2 * Math.log(u1));
+      const z1 = rad * Math.cos(2 * Math.PI * u2), z2 = rad * Math.sin(2 * Math.PI * u2);
+      const f = Math.min(Math.max(a.y / sc.yukseklik_ref_m, 0), 1);
+      const sx = sc.olcek * (sc.alpha_h_zemin + (sc.alpha_h_yuksek - sc.alpha_h_zemin) * f) * v ** sc.delta_h;
+      const sy = sc.olcek * (sc.alpha_v_zemin + (sc.alpha_v_yuksek - sc.alpha_v_zemin) * f) * v ** sc.delta_v;
+      const s = k.shot.sapma, near = (p, q, tol) => Math.abs(p - q) <= tol;
+      const iyi = s && near(s.u[0], u1, 2e-9) && near(s.u[1], u2, 2e-9) && near(s.hata_m[0], sx * z1, 2e-4)
+        && near(s.hata_m[1], sy * z2, 2e-4) && near(s.nisan_gercek.x, a.x + sx * z1, 2e-4)
+        && near(s.nisan_gercek.y, a.y + sy * z2, 2e-4) && near(k.shot.aim_effective.x, a.x + sx * z1, 2e-4);
+      console.log(`şut ${n} sapması: (${(sx * z1).toFixed(4)}, ${(sy * z2).toFixed(4)}) m -> ${iyi ? 'AYNI' : 'FARKLI'}`);
+      c5 &&= Boolean(iyi);
+    });
+    ok &&= c5;
+  } else {
+    const c5 = log.kicks.every((k) => k.shot.sapma === null && Math.abs(k.shot.aim_effective.x - k.shot.aim.x) < 1e-4);
+    console.log(`şut sapması KAPALI (seçenek A): log'da sapma yok: ${c5 ? 'AYNI' : 'FARKLI'}`);
+    ok &&= c5;
+  }
 }
 console.log(ok ? 'BAĞIMSIZ KONTROL: TUTUYOR' : 'BAĞIMSIZ KONTROL: TUTMUYOR');
 process.exit(ok ? 0 : 1);

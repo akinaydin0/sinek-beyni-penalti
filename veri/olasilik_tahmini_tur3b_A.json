@@ -1,0 +1,89 @@
+{
+ "UYARI": "TAHMİN (senaryo için), SONUÇ DEĞİL. Gerçek seri tek seferlik; beacon ve tohumlar açıklanınca belli olur.",
+ "ne": "[tur3b 2026-10-22] yeni kurallarla (Hunter açık, kaleci ±30-50 cm kayık, beyin gerçek yeri görüyor, BALİSTİK kaleci uçuşu) 5 şutluk serinin Monte Carlo tahmini",
+ "secenek": "A (şut sapması KAPALI)",
+ "olusturuldu_utc": "2026-10-22T20:35:56Z",
+ "girdi": {
+  "config": "config_sablon.json",
+  "sapma_secimi": "kapali",
+  "config_sha256": "2cfc65f1104152b553b6d1ac380182b83a9353fcafa6c047f8cc07051b41a3bd",
+  "motor_sha256": "579814428d8e24c16bd21b97da5f14caa6cd97f463b75aa58c44819bbf9db252",
+  "beyin_taramalari": ["kalibrasyon_kayma_tarama.json","kalibrasyon_kayma_tarama_tur3.json"],
+  "beyin_deneme_sayisi": {
+   "-0.5": 35,
+   "-0.45": 20,
+   "-0.4": 35,
+   "-0.35": 20,
+   "-0.3": 35,
+   "0.3": 35,
+   "0.35": 20,
+   "0.4": 35,
+   "0.45": 20,
+   "0.5": 35
+  },
+  "beyin_kaynaklari": {
+   "-0.5": ["kalibrasyon_kayma_tarama.json: 15","kalibrasyon_kayma_tarama_tur3.json: 20"],
+   "-0.45": ["kalibrasyon_kayma_tarama_tur3.json: 20"],
+   "-0.4": ["kalibrasyon_kayma_tarama.json: 15","kalibrasyon_kayma_tarama_tur3.json: 20"],
+   "-0.35": ["kalibrasyon_kayma_tarama_tur3.json: 20"],
+   "-0.3": ["kalibrasyon_kayma_tarama.json: 15","kalibrasyon_kayma_tarama_tur3.json: 20"],
+   "0.3": ["kalibrasyon_kayma_tarama.json: 15","kalibrasyon_kayma_tarama_tur3.json: 20"],
+   "0.35": ["kalibrasyon_kayma_tarama_tur3.json: 20"],
+   "0.4": ["kalibrasyon_kayma_tarama.json: 15","kalibrasyon_kayma_tarama_tur3.json: 20"],
+   "0.45": ["kalibrasyon_kayma_tarama_tur3.json: 20"],
+   "0.5": ["kalibrasyon_kayma_tarama.json: 15","kalibrasyon_kayma_tarama_tur3.json: 20"]
+  },
+  "seri": 20000,
+  "sut": 100000,
+  "mc_tohum": 20261022,
+  "sure_s": 390.5
+ },
+ "yontem": "Her şut: kayma U[0,30;0,50]·(±1) -> beynin cevabı komşu tarama noktasından (yakınlık ağırlıklı) rastgele bir gerçek deneme -> kaleci planı rastgele seed'den (draw_plan) -> simulate_kick(keeper_x = kayma). Şutlar bağımsız; seri gol sayısı Binom(5, p) ile de kontrol edildi.",
+ "sonuc_hunter_acik": {
+  "sinek_gol_dagilimi_0_5": [0.0,0.0003,0.0031,0.043,0.2777,0.6761],
+  "P_sinek_kazanir_en_az_3_gol": 0.9968,
+  "P_cakir_kazanir": 0.0034,
+  "P_sinek_kazanir_binom_kontrol": 0.9963,
+  "P_sinek_kazanir_95_guven_beyin_bootstrap": [0.996,0.997],
+  "beklenen_sinek_golu": 4.626,
+  "sut_basina": {
+   "gol": 0.9253,
+   "kurtaris": 0.0747,
+   "direk": 0.0,
+   "aut_wide": 0.0,
+   "ust_aut_over": 0.0,
+   "aut_toplam_wide_over": 0.0,
+   "isabetli_sut_orani": 1.0,
+   "isabetli_sutlarda_kurtaris": 0.0747
+  },
+  "temas_orani": 0.1374,
+  "temas_olup_gol_hunter": 0.0627,
+  "kalecinin_yerine_gore_gol": {
+   "sol": 0.9025,
+   "sag": 0.948
+  },
+  "nisan_kalecinin_oldugu_tarafta": 0.7894
+ },
+ "sut_basina_yuzde": {
+  "goal": 92.53,
+  "save": 7.47,
+  "wide": 0.0,
+  "over": 0.0,
+  "post": 0.0
+ },
+ "karsilastirma_hunter_kapali_ayni_cekilisler": {
+  "sinek_gol_dagilimi_0_5": [0.0001,0.0018,0.0182,0.1208,0.3834,0.4757],
+  "P_sinek_kazanir_en_az_3_gol": 0.9799,
+  "sut_basina": {
+   "gol": 0.8626,
+   "kurtaris": 0.1374,
+   "direk": 0.0,
+   "aut_wide": 0.0,
+   "ust_aut_over": 0.0,
+   "aut_toplam_wide_over": 0.0,
+   "isabetli_sut_orani": 1.0,
+   "isabetli_sutlarda_kurtaris": 0.1374
+  }
+ },
+ "sinirlar": ["Beyin her kayma değeri için ayrı koşturulmadı: 10 tarama noktası (nokta başına 20-35 deneme) arasında komşu nokta seçildi.","Beyin taramalarının tohumları finaldeki tohumlar değil; finalde beyin yeni tohumlarla bir kez koşar.","Kalecinin tepki, dalış, erişim sayıları FC reytinglerinden varsayımla türetildi (MODEL.md).","Bootstrap aralığı yalnız beyin örnekleminin belirsizliğidir; motor modelinin hatası buna dahil değil."]
+}

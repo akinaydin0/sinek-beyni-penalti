@@ -20,6 +20,11 @@ Seri: 5 şut; SİNEK = gol sayısı; gol dışı her sonuç (kurtarış, direk, 
 
   python3.12 -I olasilik.py --tarama ../veri/kalibrasyon_kayma_tarama.json ../veri/kalibrasyon_kayma_tarama_tur3.json \
       --config config_sablon.json --seri 20000 --cikti ../veri/olasilik_tahmini.json
+
+[tur3b 2026-10-22] Motor artık balistik kaleci (keeper_model.ucus). --sapma kapali|acik|sablon: seçenek A (sapma
+kapalı) ya da B (sapma açık; sut_sapmasi kuralı, MODEL.md bölüm 8). Aynı --tohum ile A ve B AYNI çekilişleri kullanır
+(eşleştirilmiş karşılaştırma): fark yalnız sapmadan gelir. Sapma zarları gerçek motordaki gibi şutun kaleci
+seed'inden (draw_scatter).
 """
 from __future__ import annotations
 
@@ -41,16 +46,26 @@ GRID = [0.30, 0.35, 0.40, 0.45, 0.50]
 _CFG = _KP = None
 
 
-def _init(cfg_path):
+def config_yukle(cfg_path, sapma="sablon"):
+    """[tur3b 2026-10-22] config + seçenek: 'sablon' (dosyadaki gibi), 'kapali' (A) ya da 'acik' (B)."""
+    cfg = pm.load_json(cfg_path)
+    if sapma in ("acik", "kapali"):
+        cfg["sut_sapmasi"] = dict(cfg["sut_sapmasi"], acik=(sapma == "acik"))
+    return cfg
+
+
+def _init(cfg_path, sapma="sablon"):
     global _CFG, _KP
-    _CFG = pm.load_json(cfg_path)
+    _CFG = config_yukle(cfg_path, sapma)
     _KP = pm.keeper_params(_CFG)
 
 
 def _one(task):
     x, ax, ay, v, kseed, n = task
     plan = pm.draw_plan(_CFG, kseed, n)
-    r = pm.simulate_kick(_CFG, _KP, {"x": ax, "y": ay}, v, plan, x)
+    sc = pm.draw_scatter(_CFG, kseed, n, {"x": ax, "y": ay}, v)   # [tur3b 2026-10-22] None if option A
+    aim = sc["aim"] if sc else {"x": ax, "y": ay}
+    r = pm.simulate_kick(_CFG, _KP, aim, v, plan, x)
     c = r["contact"]
     return (r["outcome"], c is not None, bool(c and c.get("beaten")), plan["dive_dir"])
 
@@ -85,8 +100,10 @@ def main():
     ap.add_argument("--is", dest="isci", type=int, default=8)
     ap.add_argument("--bootstrap", type=int, default=2000)
     ap.add_argument("--cikti", required=True)
+    ap.add_argument("--sapma", choices=["sablon", "kapali", "acik"], default="sablon",
+                    help="[tur3b] seçenek A = kapali, B = acik (varsayılan: şablondaki değer)")
     a = ap.parse_args()
-    cfg = pm.load_json(a.config)
+    cfg = config_yukle(a.config, a.sapma)
     pools, srcs = load_pools(a.tarama)
     for s in (-1, 1):
         for g in GRID:
@@ -111,7 +128,7 @@ def main():
             tasks.append((x, ax, ay, v, kseed, n))
             meta.append((s, key, j))
     t0 = time.time()
-    with Pool(a.isci, initializer=_init, initargs=(a.config,)) as pool:
+    with Pool(a.isci, initializer=_init, initargs=(a.config, a.sapma)) as pool:
         res = pool.map(_one, tasks, chunksize=500)
     wall = time.time() - t0
 
@@ -179,11 +196,13 @@ def main():
 
     out = {
         "UYARI": "TAHMİN (senaryo için), SONUÇ DEĞİL. Gerçek seri tek seferlik; beacon ve tohumlar açıklanınca belli olur.",
-        "ne": "[tur3 2026-10-22] yeni kurallarla (Hunter açık, kaleci ±30-50 cm kayık, beyin gerçek yeri görüyor) "
-              "5 şutluk serinin Monte Carlo tahmini",
+        "ne": "[tur3b 2026-10-22] yeni kurallarla (Hunter açık, kaleci ±30-50 cm kayık, beyin gerçek yeri görüyor, "
+              "BALİSTİK kaleci uçuşu) 5 şutluk serinin Monte Carlo tahmini",
+        "secenek": ("B (şut sapması AÇIK)" if pm.scatter_rule(cfg) else "A (şut sapması KAPALI)"),
         "olusturuldu_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "girdi": {
-            "config": os.path.basename(a.config), "config_sha256": pm.sha256_hex(pm.canonical_json(cfg)),
+            "config": os.path.basename(a.config), "sapma_secimi": a.sapma,
+            "config_sha256": pm.sha256_hex(pm.canonical_json(cfg)),
             "motor_sha256": pm.engine_sha256(),
             "beyin_taramalari": [os.path.basename(p) for p in a.tarama],
             "beyin_deneme_sayisi": {str(k): len(v) for k, v in sorted(pools.items())},
@@ -206,6 +225,7 @@ def main():
             "kalecinin_yerine_gore_gol": {k: round(v["goal"] / v["n"], 4) for k, v in side.items()},
             "nisan_kalecinin_oldugu_tarafta": round(aim_same_side / N, 4),
         },
+        "sut_basina_yuzde": {k: round(100 * cnt.get(k, 0) / N, 2) for k in ("goal", "save", "wide", "over", "post")},
         "karsilastirma_hunter_kapali_ayni_cekilisler": {
             "sinek_gol_dagilimi_0_5": d_off,
             "P_sinek_kazanir_en_az_3_gol": round(sum(d_off[3:]), 4),
@@ -219,7 +239,7 @@ def main():
         ],
     }
     pm.write_json(a.cikti, out)
-    print(json.dumps({k: out[k] for k in ("sonuc_hunter_acik", "karsilastirma_hunter_kapali_ayni_cekilisler")},
+    print(json.dumps({k: out[k] for k in ("secenek", "sonuc_hunter_acik", "sut_basina_yuzde")},
                      ensure_ascii=False, indent=1))
     print(f"yazıldı: {a.cikti}  ({N} şut, {wall:.0f} s)")
 

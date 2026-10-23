@@ -7,7 +7,8 @@
 Ne yapar:
   1. Python 3.12 mi diye bakar (referans 3.12.10).
   2. beyin/.venv'i bu Python ile kurar; pip==26.2.2 ve beyin/requirements.txt'teki 24 paketi birebir sürümle yükler.
-  3. Windows: taahhüde giren kod (oyun/commit.py, tests.py) beyin Python'unu beyin/.venv/bin/python yolunda arar;
+  3. [tur4 2026-10-23] macOS/Linux: beyin/.venv/bin/python_utf8 yazılır (aynı Python, '-X utf8'; aşağıdaki .cmd'nin eşi).
+     Windows: taahhüde giren kod (oyun/commit.py, tests.py) beyin Python'unu beyin/.venv/bin/python yolunda arar;
      Windows venv'i ise Scripts\\python.exe kullanır. Kod değiştirilmesin diye beyin/.venv/bin/ içine
      Scripts\\python.exe'nin bir KOPYASI konur (python ve python.exe adlarıyla). Spike'ları etkilemez.
      Ayrıca beyin/.venv/python_utf8.cmd yazılır: aynı Python'u '-X utf8' ile başlatır. verify.py beyin alt sürecinin
@@ -70,7 +71,7 @@ def main():
     if kod != 0:
         sys.exit("HATA: paketler kurulamadı (yukarıdaki pip çıktısına bak).")
     print(f"paketler kuruldu ({s1 + s2:.0f} s)")
-    ref = ortak.json_oku(ortak.PROVA5["config"])["ortam"]["paketler"]
+    ref = ortak.json_oku(ortak.PROVA["config"])["ortam"]["paketler"]  # [tur4 2026-10-23] PROVA7B
     kod, cikti, _ = ortak.kos([py, "-I", "-B", "-c",
                                "import importlib.metadata as m;print('\\n'.join(sorted(d.metadata['Name']+'=='+d.version "
                                "for d in m.distributions())))"], gizle=True)
@@ -110,7 +111,14 @@ def main():
             print("UYARI: python_utf8.cmd çalışmadı ve silindi; dogrula.py düz python.exe kullanacak. Türkçe kod "
                   "sayfalı (cp1254) Windows'ta beyin yeniden koşusu bu yüzden 'UnicodeDecodeError' ile düşebilir.")
     else:
-        ortak.baslik("3/4 (yalnız Windows'ta gerekli adım: atlandı)")
+        # [tur4 2026-10-23] macOS/Linux: aynı UTF-8 kalkanı (beyin/.venv/bin/python_utf8). 8-bit yerel ayarlı
+        # Linux'ta (ör. tr_TR.ISO-8859-9) beyin alt süreci 'ş'yi 0xFE yazar; CI'da ölçüldü. UTF-8 yerel ayarda etkisiz.
+        ortak.baslik("3/4 UTF-8 kalkanı: beyin/.venv/bin/python_utf8 (aynı Python, -X utf8)")
+        yol, aciklama = ortak.utf8_kalkan_kur()
+        print(f"beyin/.venv/bin/python_utf8: {aciklama}")
+        if not yol:
+            print("UYARI: kalkan çalışmadı; dogrula.py düz python kullanacak. UTF-8 olmayan yerel ayarda beyin "
+                  "yeniden koşusu 'UnicodeDecodeError' ile düşebilir (LANG=C.UTF-8 ile çalıştır).")
 
     ortak.baslik("4/4 Brian2 Cython derleme denemesi")
     if a.derleyici_atla:

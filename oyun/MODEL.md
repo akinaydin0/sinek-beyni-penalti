@@ -4,6 +4,10 @@ Bütün sayılar `config_*.json` içinde durur ve taahhüt özetine girer. Kod (
 Koordinatlar `SOZLESME.md` ile aynı: x+ şutörün sağı (= kalecinin SOLU), y yukarı, z kaleden penaltı noktasına.
 Kaleci için "left/right" her yerde **kalecinin kendi** solu/sağıdır (Bar-Eli 2007 ile aynı).
 
+> [tur3b 2026-10-22] Bu sürümde iki şey değişti (taahhütten ÖNCE kararlaştırıldı): **kaleci dalışı artık balistik**
+> (bölüm 2: itme, yerçekimiyle uçuş, iniş, kayma; eski "yana uçup havada durup dikine düşen" yol kaldırıldı) ve
+> **isteğe bağlı şut sapması** (bölüm 8, seçenek B; `config_sablon.json`'da varsayılan KAPALI). Motor sürümü 1.1.0.
+
 ## 1. Top
 | Ne | Değer / formül | Kaynak |
 |---|---|---|
@@ -26,11 +30,11 @@ aşağıdaki eğimler bizim varsayımımız, dayandıkları temel değerler kayn
 | Ne | Formül | Uğurcan | Kaynak |
 |---|---|---|---|
 | Tepki süresi (Reflexes) | RT = 255 − 0,4·(Reflexes − 65) ms | **0,248 s** | Piechota & Majorczyk 2023: kıdemli kaleciler 250-260 ms. Referans 65 ve 0,4 ms/puan varsayım |
-| Dalış hızı (Diving) | v = 4,0·(1 + 0,01·(Diving − 75)) m/s | **4,2 m/s** | Hunter 2018 dalış modelinde 4 m/s; puan eğimi varsayım |
-| İtme evresi | 0,40 s boyunca sabit ivme (a = v/0,40), sonra sabit hız | tam uzanma ≈ 0,57 s | varsayım; van der Kamp ve ark. 2018: yana dalış en az ~600 ms |
-| Ağırlık merkezi en uzun yol (Diving + boy) | S = H·(0,795 + 0,003·(Diving − 75)) | 1,55 m | varsayım |
-| Gövde oranları | COM yüksekliği 0,52H; COM→ayak 0,52H; COM→omuz 0,27H; kol 0,44H | | Drillis & Contini 1966 |
-| Tam uzanma erişimi | reach = S + 0,71H | **2,90 m** | brief (~2,9 m) |
+| Kalkış hızı (Diving) | [tur3b] **kalkış anındaki YATAY ağırlık merkezi (COM) hızı** v = 4,0·(1 + 0,01·(Diving − 75)) m/s; uçuşta sabit kalır | **4,2 m/s** | Hunter 2018 dalış modelinde 4 m/s; Ibrahim ve ark. 2019 (10 elit kaleci, kuvvet platformu): iki bacağın yatay COM hızına katkısı 2,7 + 1,2 ≈ 3,9 m/s. Puan eğimi varsayım |
+| İtme evresi | 0,40 s: yana sabit ivme (a = v/0,40, kalkışta yatay hız v); dikeyde önce çökme (countermovement) sonra kalkış (kübik eğri) | itmede COM ~0,84 m yana gider | varsayım; van der Kamp ve ark. 2018: yana dalış en az ~600 ms. Ibrahim ve ark. 2019 (Frontiers): yüksek dalışta iki itme ayağının tepe kuvvetleri arasında COM ~0,6-0,7 m yana gidiyor, çökme 8-14 cm; ışıktan topa toplam dalış süresi 0,97-1,05 s |
+| ~~Ağırlık merkezi en uzun yol~~ | [tur3b] **kaldırıldı** (eski `travel_frac_*`, 1,55 m'de duruyordu). Yol artık kalkış hızı, yerçekimi ve yerle belirleniyor | | |
+| Gövde oranları | COM yüksekliği 0,52H; COM→ayak 0,52H; COM→omuz 0,27H; kol 0,44H; [tur3b] COM→parmak ucu (bilek uzamış) 0,60H | | Drillis & Contini 1966; parmak ucu payı 0,08H varsayım |
+| Erişim (log'daki `reach_m`) | [tur3b] artık bir sınır DEĞİL: kör dalışta (çıkış ortalama −0,19 s), top kaleye varırken (t = 0,50 s) parmak ucunun yandaki uzaklığı | **3,33 m** (eski 2,90 m sabitti) | modelden hesaplanır |
 | Konumlanma (Positioning) | x_başlangıç = keeper_x·(1 − k·Positioning); eski prova k = 0,005, **tur3 şablonunda k = 0** | eski: ofsetin %40'ını kapatır; **tur3: x_başlangıç = keeper_x** | varsayım: iyi konumlanma = açıyı ortalamak. [tur3 2026-10-22] Kaleci artık bilerek 30-50 cm kayık duruyor (bölüm 7); bu duruş zaten onun yeri olduğu için çekme kapatıldı, yoksa beyin X'i, motor 0,6·X'i görürdü. **Positioning 80 tur3'te motorda hiçbir sayıyı değiştirmiyor** (Kicking gibi) |
 | Tutma (Handling) | p_tut = Handling/100 · kırp((32 − v)/(32 − 15)) · kırp(derinlik / 0,20 m) | 24 m/s, derin temas: 0,36 | varsayım |
 | Kicking | **etkisiz** | | penaltıda kalecinin vuruşu yoktur |
@@ -43,17 +47,34 @@ Python'a özgü değildir; herkes tarayıcıda bile yeniden hesaplayabilir. Norm
 - **Tutma zarı** (`catch`) ve isteğe bağlı model için **durdurma zarı** (`keep_out`).
 `draw_plan(cfg, seed, n)` fonksiyonunun girdisinde şut yoktur; test bunu da kontrol eder.
 
-### Hareket
-- **Atlayan kaleci** `leave_time_s` anında, seed'in seçtiği tarafa, 10° yukarı açıyla harekete başlar. İtme bitene
-  (leave + 0,40 s) kadar topu göremediyse dalış yüksekliği değişmez. Görebildiyse yalnızca **yüksekliği** topa göre seçer
-  (−35°…+45°); **tarafı asla değiştiremez**.
-- **Ağırlık merkezi**: p(τ) = ½aτ² (τ ≤ 0,40 s), sonra p = ½v·0,40 + v·(τ − 0,40), en çok S. Dikeyde en çok +0,45 m
-  (dikey sıçrama sınırı, varsayım). Tam uzanmadan sonra yerçekimiyle düşer, yatınca COM 0,15 m.
-  İtme sırasında basan ayak yerde kalır.
-- **Ortada kalan kaleci** (`stay`) topu RT anında görür ve topun geçeceği noktaya doğru gereken kadar hareket eder
-  (kol erişiminin %90'ı düşülerek). Bu durumda `leave_time_s` = RT.
-- **Eller**: RT'den önce dalışla birlikte başın üstüne uzanır. RT'den sonra el, topun kaleci düzlemini keseceği
-  noktaya doğru gövdeye göre en çok 4 m/s hızla gider; kol boyunu aşamaz (varsayım).
+### Hareket ([tur3b 2026-10-22] balistik dalış, `keeper_model.ucus`, sürüm `balistik-v1`)
+Eski yol (inceleme: "süpermen gibi asılı kalıyor"): COM ~0,85 s yatayda 4,2 m/s ile uçuyor, 1,55 m'de **havada aniden
+duruyor**, sonra **dikine** düşüyordu; ayaklar COM yüksekliğinde, gövde tam yatay. Yeni yol fiziksel olarak tutarlı:
+- **Atlayan kaleci** `leave_time_s` anında, seed'in seçtiği tarafa harekete başlar. Dalış açısı φ: kör dalışta 10°
+  (topu görmeden). İtme bitene (leave + 0,40 s) kadar topu görebildiyse yalnızca **yüksekliği** topa göre seçer
+  (φ = COM'dan topun geçeceği noktaya açı, −35°…+45°); **tarafı asla değiştiremez**.
+- **1) İtme (0,40 s, ayaklar yerde):** yana sabit ivme, kalkışta yatay hız v = 4,2 m/s, COM 0,84 m yana. İç taraftaki
+  ayak önce yana adım atar (0,05 m kalkar), sonra itme ayağı **yerde sabit** kalır. Dikey kalkış hızı
+  v_y = v·tan φ; sınırlar: (a) tepe noktası ayaktaki COM'un en çok 0,45 m üstü (`jump_cap_m`), (b) çökme serbest düşmeden
+  hızlı olamaz (kübik eğrinin başındaki ivme ≥ −g). Kalkıştaki COM yüksekliği en çok 0,60H·sin 65° = 1,04 m (itme bacağı
+  yatayla 65°, `leg_angle_takeoff_deg`); aşağı dalışta COM itme sırasında alçalır (v_y < 0). Gövde dikten 40° yana
+  eğilerek kalkar (`torso_lean_takeoff_deg`).
+- **2) Uçuş (mermi):** x = x_kalkış + v·t, y = y_kalkış + v_y·t − ½·g·t² (hava direnci yok). **Yatay hız uçuş boyunca
+  sabit**, havada durmak yok. Gövde ve bacaklar inişe kadar yataya döner; ayaklar gövdenin altında, geride kalır.
+- **3) İniş ve kayma:** COM yatma yüksekliğine (0,15 m) inince yere değer; çarpmada yatay hızın yarısı kalır
+  (`landing_keep_h` 0,5), sonra sürtünmeyle (μ = 0,5, yavaşlama μg) kayıp durur: kayma 0,45 m. Sonra hareketsiz yatar.
+- Örnek (kör dalış, çıkış −0,19 s): kalkış 0,21 s, tepe COM 1,07 m, iniş 0,72 s, duruş 1,15 s; COM'un yana yolu
+  inişte 2,97 m, duruşta 3,42 m.
+- **Ortada kalan kaleci** (`stay`) topu RT anında görür. Topa yetişmek için COM'un yana gitmesi gereken yol
+  (mesafe − kol erişiminin %90'ı) ≥ 0,8 m ise RT'de **tepkiyle dalar** (aynı balistik dalış, yükseklik topa göre);
+  değilse **adım atar**: COM minimum-sarsıntı eğrisiyle (en az 0,25 s) yerine gider ve yumuşak durur, ayaklar yerde;
+  alçak topta en çok 0,50 m'ye çöker, yüksek topta zıplar (itme 0,40 s, çökme yine serbest düşmeden hızlı değil: en çok
+  ~0,19 m), sonra ayaklarının üstüne iner. Bu durumda `leave_time_s` = RT.
+- **Eller**: RT'den önce dalışla birlikte gövde doğrultusunda uzanır. RT'den sonra el, topun kaleci düzlemini keseceği
+  noktaya doğru gövdeye göre en çok 4 m/s hızla gider; kol boyunu aşamaz (varsayım). [tur3b] Top kaleci düzlemini
+  geçtikten 0,15 s sonra eller gövdeye döner (ayaktaysa göğüs önü, yattıysa başın önünde yerde); tutulan top eli izler
+  ama yerin altına inmez. Eski "yerde yatarken topu dik kolla havada tutma" pozu böylece kalktı. Bu dönüş temas
+  anından sonra olduğu için sonucu değiştirmez.
 - **Temas**: kaleci düzleminde (z = 0,20 m) top merkezi ile üç kapsül arasındaki en kısa mesafe hesaplanır:
   bacaklar (ayak→COM, r = 0,10), gövde (COM→omuz, r = 0,16), kol ve eller (omuz→el, r = 0,08).
   **boşluk = mesafe − r_parça − 0,11 m**. boşluk ≤ 0 → kurtarış (brief kuralı).
@@ -63,7 +84,7 @@ Python'a özgü değildir; herkes tarayıcıda bile yeniden hesaplayabilir. Norm
   `wide`/`over`'da topun çerçevenin kaç cm dışından geçtiği. (`keeper_gap_cm` her durumda kalecinin boşluğudur; eksi = temas.)
 - **explain**: bu sayılardan kurulan tek Türkçe cümle (`explain_tr`).
 
-## 3. Kalibrasyon (yalnız PROVA kontrolü, `kalibrasyon_sonuc.txt`)
+## 3. Kalibrasyon (yalnız PROVA kontrolü, `kalibrasyon_sonuc.txt`; [tur3b] yeni ölçüm `../tur3b_olcum/`)
 Kale üçe bölünür; bölge içinde x düzgün, yükseklik alçağa yatık (penaltıların çoğu alt yarıya gider, Opta/Guardian 2023),
 hız N(23,5; 1,9) m/s. Yalnız isabetli şutlar sayılır (Bar-Eli gibi).
 
@@ -77,6 +98,25 @@ hız N(23,5; 1,9) m/s. Yalnız isabetli şutlar sayılır (Bar-Eli gibi).
 | **Genel (Bar-Eli ağırlıklı)** | **%14,7** (Hunter 2018: %16,5) | **%25,8** | **%17,4** |
 
 Hücre başına 200 isabetli şut. Kurtarış haritası (24 m/s, her yükseklik ve genişlikte) aynı dosyada.
+
+### [tur3b 2026-10-22] Balistik kaleciyle yeniden ölçüm (`kalibrasyon.py --config config_sablon.json --n 200`, Hunter açık)
+**Hiçbir sabit uyum için değiştirilmedi.** Yeni uçuş sabitleri (65°, 40°, 0,08H, 0,5, μ 0,5, 0,25 s, 0,50 m, 0,15 s)
+ilk kalibrasyon koşusundan ÖNCE yazıldı; kalkış hızı, tepki, itme süresi, sıçrama sınırı eskisiyle aynı.
+
+| Vuruş / kaleci | Gerçek (Bar-Eli 2007) | ÖNCE (eski yol, Hunter açık) | SONRA (balistik, Hunter açık) |
+|---|---|---|---|
+| Doğru tarafa atlayış (sol/sol, sağ/sağ) | %29,6 / %25,4 | %36,0 / %35,0 | **%30,5 / %33,5** |
+| Ters tarafa atlayış | %0 | %0 / %0 | **%0 / %0** |
+| Ortaya vuruş, kaleci atlıyor (sol / sağ) | %9,8 / %3,2 | %8,5 / %9,5 | %6,0 / %6,5 |
+| Ortaya vuruş, kaleci ortada (gerçekte 10 şut) | %60 | %32,5 | %32,0 |
+| Yana vuruş, kaleci ortada | %0 | %0-0,5 | %0 |
+| **Genel (Bar-Eli ağırlıklı)** | **%14,7** (Hunter 2018: %16,5) | **%17,4** | **%15,4** |
+
+- Genel oran ve doğru taraf gerçeğe **yaklaştı**; ters taraf yine %0. Fark nereden: erken çıkan kaleci artık top
+  gelince yere inmiş oluyor (eskiden 1,55 m'de havada bekliyordu); yüksek toplarda kurtarış azaldı (24 m/s haritası,
+  1,7 m: eski %8-33, yeni %5-13; Almeida ve ark. 2016'da üst sıra bölgelerinde kurtarış %0-10), alçak köşelerde
+  arttı (x = ±3,3 m, 0,3-1,0 m: eski %0, yeni %17-25; Almeida'da alt köşeler %18-22).
+- Harita ve tablo: `../tur3b_olcum/kalibrasyon_SONRA.txt` (önce: `../tur3b_olcum/kalibrasyon_ONCE_eski_motor.txt`).
 
 Yorum: modelin **deseni** gerçeğe uyuyor (ters tarafa atlayan hiç kurtaramıyor, ortada kalan yana gideni hiç
 kurtaramıyor, ortada kalan ortaya geleni en çok kurtarıyor). Ama varsayılan kuralla kaleci, doğru tarafa
@@ -92,7 +132,7 @@ belgeyle tutarlı: kod `p_keep = kırp(a·hız + b)` (hız = şutun çıkış h�
 a = −0,0447, b = 1,72 → 20 m/s %82,6, 26,5 m/s %53,5, 30 m/s %37,9. Ölçülen etkisi (bölüm 3 ile aynı şut kümesi,
 `kalibrasyon.py --config config_sablon.json --n 200`): isabetli şutlarda Bar-Eli ağırlıklı kurtarış **%17,4**
 (kapalıyken %25,8; gerçek %14,7, Hunter 2018 %16,5). Sinek beyninin gerçek şutlarıyla (yüksek, 25-28 m/s) oran
-`../veri/olasilik_tahmini.json`'da.
+`../veri/olasilik_tahmini.json`'da. [tur3b 2026-10-22] Balistik kaleciyle yeniden: `_tur3/veri/olasilik_tahmini_tur3b_A.json` (sapma kapalı) ve `_B.json` (sapma açık); özet `_tur3/DEGISIKLIK.md`.
 
 ## 5. penalty_log.json: sözleşmeye EK alanlar (eklemeli, hiçbir sözleşme alanı değişmedi)
 - Üst düzey: `prova`, `stub`, `UYARI`, `keeper_seeds`, `beacon`, `engine{name,version,sha256}`, `config_sha256`,
@@ -110,6 +150,10 @@ a = −0,0447, b = 1,72 → 20 m/s %82,6, 26,5 m/s %53,5, 30 m/s %37,9. Ölçül
 ## 6. Sınırlar
 - Falso/Magnus yok, Cd sabit; rüzgâr yok.
 - Kaleci tek düzlemde iki boyutlu bir model; ileri çıkma, el bileği, eldiven yok. Direğe çarpmaz.
+- [tur3b] Uçuşta hava direnci yok; iniş ve kayma basit (yarı hız + sabit sürtünme). Kalkış açısı, gövde eğimi, iniş
+  kaybı ve sürtünme varsayım (yayımlanmış tek bir sayıları yok); kaynaklı olanlar: kalkış yatay hızı (~3,9-4,2 m/s),
+  itme süresi ve yönü, çökme.
+- [tur3b] Kaleci kaydıktan sonra yatay olarak direğin dışına taşabilir (yalnız görüntü; çarpışma yok).
 - Kaleci RT'den sonra topun geçeceği noktayı kusursuz bilir (kaleci lehine).
 - FC reytingi → fizik eğimleri varsayım. Yorgunluk, baskı, şutörün koşusu modelde yok.
 - Kurtarılan topun sekişi basitleştirilmiştir (yalnız görüntü).
@@ -132,3 +176,50 @@ a = −0,0447, b = 1,72 → 20 m/s %82,6, 26,5 m/s %53,5, 30 m/s %37,9. Ölçül
 - **Positioning 80 ne yapıyor?** Tur3 kurallarıyla motorda hiçbir şey. Değer config'te, log'da ve taahhütte durur;
   ekranda gösterilebilir, ama kalecinin yeri artık kayma kuralından gelir. Reytingi kaymaya bağlayan yayımlanmış bir
   formül yok; 30-50 cm aralığı Akın'ın kararıdır.
+
+## 8. [tur3b 2026-10-22] Şut sapması: SEÇENEK B (varsayılan KAPALI, `config.sut_sapmasi`)
+**Neden:** bugüne kadar sinek hiç ıskalamıyordu: beynin nişanı çerçevenin içine kırpılıyor ve vuruş kusursuz uygulanıyordu.
+Gerçek oyuncular niyet ettikleri yere tam vuramaz. B açılırsa beynin nişanı **niyet** sayılır, ayak önceden kayıtlı bir
+yürütme hatası ekler. A (kapalı) bugünkü davranıştır.
+
+**Kural (sapma-v1, sabit; sonuç görülmeden yazıldı):**
+- Zarlar: u1 = U(kseed, `"kick<n>|sapma_u1"`), u2 = U(kseed, `"kick<n>|sapma_u2"`); kseed = şut n'nin **beacon karışmış**
+  kaleci seed'i (`effective_seeds`). Yani taahhüdün içindeki seed + taahhütten sonra yayınlanan drand turu: kimse önceden bilemez.
+- Box-Muller: z1 = √(−2 ln u1)·cos(2π u2), z2 = √(−2 ln u1)·sin(2π u2) (iki bağımsız standart normal).
+- f = kırp(nişan_y / 1,6 m, 0, 1). σx = olcek·(α_h,yer + (α_h,yüksek − α_h,yer)·f)·hız^δ_h, σy aynı biçimde (δ_v, α_v).
+- Gerçek nişan = niyet + (σx·z1, σy·z2); motor topu bu noktaya fırlatır (çizgi altına inerse yerden giden şut).
+  **Aut, üstten aut ve direk ÇAKIR'a** (skor kuralı değişmedi).
+- Log: `shot.sapma` = {kural, u, z, sigma_m, hata_m, nisan_niyet, nisan_gercek}; `shot.aim_effective` = gerçek nişan;
+  üst düzeyde `sut_sapmasi_acik`. Aut/direk açıklamasına "Vuruş, sineğin nişanından X saptı." eklenir.
+
+**Sabitler ve kaynakları:**
+| Sabit | Değer | Kaynak |
+|---|---|---|
+| δ_h, α_h (yer / 1,6 m hedef) | 0,5056909; 0,123205 / 0,138678 | Hunter, Angilletta, Pavlic, Lichtwark & Wilson 2018, *J. Biomech.* 72:159-166, Tablo 3; 20 deneyimli oyuncu, 8466 vuruş, 11 m, **iç taraf (side-foot)** |
+| δ_v, α_v (yer / 1,6 m hedef) | 2,057649; 0,000594 / 0,001372 | aynı makale, Tablo 4 |
+| Biçim | standart sapma = α·hız^δ (hız m/s) | makalenin varyans gücü fonksiyonu; şekil 2-3'teki ±1 SD çizgileriyle kontrol edildi (ör. yerdeki hedef, 25 m/s: dikey SD ~0,45 m) |
+| İç taraf seçimi | | sinekte vuruş tekniği yok; iç taraf daha isabetli (daha az sapma: sinek lehine, temkinli seçim); sineğin hızları (24-28 m/s) iç tarafın ulaşabildiği aralıkta (makale: iç tarafla 30 m/s üstü yok) |
+| Yükseklik arası | 0 ile 1,6 m arasında doğrusal, 1,6 m üstü yüksek hedef değeri | varsayım (makalede yalnız iki hedef var) |
+| **olcek** | **0,332** | **gerçek maç verisine kalibrasyon** (aşağıda) |
+
+**Kalibrasyon (`kalibrasyon.py --config config_sablon.json --sapma-kalibre`, 12.000 şut, ortak rastgele sayılarla ikiye bölme):**
+- Hedef: maç içi penaltılarda kaleyi bulmayan (aut + üstten aut + direk) oranı **%4,78** = Vollmer, Schoch & Brandes 2024
+  (*PLoS One* 19:e0315017; Transfermarkt, 115 yarışma, 2012/13-2022/23): kupalar %4,29 (7.694), ligler %4,94 (23.519).
+- Niyet nişanları: bölüm 3'ün standart şut kümesi (bölge içinde x düzgün, yükseklik alçağa yatık, hız N(23,5; 1,9));
+  bölgeler Bar-Eli vuruş toplamlarıyla (92 / 82 / 112) ağırlıklı; kaleci gerçek dağılımdan (`draw_plan`).
+- Sonuç: olcek 1,0 (laboratuvar hatası olduğu gibi) → %15,4 kaçan (gerçeğin 3 katı); **olcek 0,332 → %4,78**. Yani maçtaki
+  profesyoneller laboratuvardaki deneyimli oyunculardan ~3 kat isabetli (ya da niyetleri çerçeveden daha içeride).
+- Kontrol (ayarlamada kullanılmadı): Almeida, Volossovitch & Duarte 2016 (UEFA ŞL + UAL, 536 penaltı; The Guardian'ın
+  grafiği): genel %5,2 kaçan; kale üst sırasında ~%13,7, alt sırasında ~%2,7. Model: üst sıra %10,5, alt sıra %2,3
+  (yüksek şutlarda gerçeği biraz **az** tahmin ediyor).
+- **Bilinen zayıflık:** modelde kaçanların ~%90'ı direk (aut %0,09, üstten aut %0,38, direk %4,31); UEFA.com'un
+  2007/08-2013/14 ŞL sayımında 211 penaltıda 8 direk, 4 aut (küçük örnek). Sebep: niyet olarak alınan standart küme
+  çerçeveye kadar uzanıyor (direğe 11 cm, üst direğe 14 cm). Kaçanların TOPLAM oranı kalibre, ama türleri gerçekten daha
+  direk ağırlıklı.
+- Sinek için anlamı: sineğin nişanları çerçeveden içeride (yan direğe ~0,5-2 m, üst direğe ~0,8-1,1 m) ve hızlı (25-28
+  m/s); bu kuralla tipik bir sinek şutunda σx ≈ 0,24 m, σy ≈ 0,37 m (26,8 m/s, 1,45 m). Olasılıklar: `../_tur3/DEGISIKLIK.md`.
+- **Sonradan ayar yok:** olcek ve bütün α/δ `commit.py`'de (`TUR3B_KURALLARI`) ve `verify.py`'de (KAT) elle yazılı; şablon
+  bunlardan saparsa `commit.py` üretmez, `verify.py` HATA verir. A mı B mi, şablondaki `sut_sapmasi.acik` ile seçilir
+  ve bir gün önceki duyuru özetine girer.
+- Modelde olmayanlar: Hunter'ın bulduğu hızla kayan ortalama (sistematik kayma) ve sağ/sol ayak eğik dağılımı;
+  hız hatası (yalnız yön sapıyor); baskı (seri penaltıda kaçan %9,92, Vollmer 2024; sinekte baskı yok, maç içi oran alındı).

@@ -85,6 +85,22 @@ AKIN_KARARLARI = {
     "beyin.tohum": "beyin-tohum-v1",
 }
 
+# [tur3b 2026-10-22] motor kuralları (taahhütten ÖNCE kararlaştırıldı): gerçekçi (balistik) kaleci uçuşu ZORUNLU;
+# şut sapması (seçenek B) kuralı önceden kayıtlı ve sabit. Açık mı kapalı mı (sut_sapmasi.acik) Akın'ın A/B seçimi:
+# şablona yazılır, bir gün önceki duyuru özetine girer. Sabitler sonuç görülmeden kalibre edildi (MODEL.md bölüm 8).
+TUR3B_KURALLARI = {
+    "keeper_model.ucus.surum": "balistik-v1",
+    "sut_sapmasi.surum": "sapma-v1",
+    "sut_sapmasi.delta_h": 0.5056909,
+    "sut_sapmasi.alpha_h_zemin": 0.123205,
+    "sut_sapmasi.alpha_h_yuksek": 0.138678,
+    "sut_sapmasi.delta_v": 2.057649,
+    "sut_sapmasi.alpha_v_zemin": 0.000594,
+    "sut_sapmasi.alpha_v_yuksek": 0.001372,
+    "sut_sapmasi.yukseklik_ref_m": 1.6,
+    "sut_sapmasi.olcek": 0.332,   # kalibrasyon: kalibrasyon.py --sapma-kalibre (MODEL.md 8)
+}
+
 # kural özetine GİRMEYEN (koşudan koşuya değişen) alanlar
 KURAL_DISI_UST = ("mod", "not", "seed", "keeper_seeds", "beacon_rule", "kod_ozetleri", "ortam")
 KURAL_DISI_BEACON = ("round", "round_time_utc")
@@ -133,13 +149,21 @@ def _get(d, path):
 
 
 def karar_farklari(cfg):
-    """Akın'ın kararlarından sapan alanlar: [(alan, beklenen, bulunan)]."""
+    """Akın'ın kararlarından ve [tur3b 2026-10-22] motor kurallarından sapan alanlar: [(alan, beklenen, bulunan)]."""
     out = []
-    for path, want in AKIN_KARARLARI.items():
+    for path, want in list(AKIN_KARARLARI.items()) + list(TUR3B_KURALLARI.items()):
         got = _get(cfg, path)
         if got != want or type(got) is bool:
             out.append((path, want, got))
+    acik = _get(cfg, "sut_sapmasi.acik")
+    if type(acik) is not bool:   # [tur3b 2026-10-22] A (false) ya da B (true); başka bir değer olamaz
+        out.append(("sut_sapmasi.acik", "true/false", acik))
     return out
+
+
+def secenek(cfg):
+    """[tur3b 2026-10-22] 'A' (sapma kapalı) ya da 'B' (sapma açık)."""
+    return "B" if _get(cfg, "sut_sapmasi.acik") is True else "A"
 
 
 def kurallar(cfg):
@@ -278,6 +302,8 @@ def cmd_kurallar(a):
     print("kapsam: config'in seed'ler, mod, not, beacon.round, beacon.round_time_utc, beacon_rule, kod_ozetleri ve "
           f"ortam DIŞINDAKİ bütün alanları + {len(kod)} kod/veri dosyasının SHA-256'sı")
     irm = s["keeper_model"]["in_reach_save_model"]
+    print(f"[tur3b] kaleci uçuşu: {s['keeper_model']['ucus']['surum']} | şut sapması: SEÇENEK {secenek(s)} "
+          f"({'AÇIK' if secenek(s) == 'B' else 'KAPALI'}; kural {s['sut_sapmasi']['surum']}, olcek {s['sut_sapmasi']['olcek']})")
     print(f"özet: Hunter a={irm['a']} b={irm['b']} | kayma {s['keeper_shift']['min_m']}-{s['keeper_shift']['max_m']} m, "
           f"p+ {s['keeper_shift']['p_positive']} | merkeze çekilme {s['keeper_model']['positioning_pull_per_point']} | "
           f"en az {s['beacon']['min_gecikme_dk']} dk önceden taahhüt | beyin tohumu: {s['beyin']['tohum']}")
@@ -331,6 +357,8 @@ def cmd_yeni(a):
     print(f"beacon: drand quicknet turu {r} -> yayın {bcn.iso_utc(t_r)} (UTC) = {bcn.yerel(t_r)} "
           f"[{(t_r - now) / 60:.0f} dk sonra]")
     print("beyin tohumu: config'te YOK; tur yayınlanınca beacon'dan türetilir (beacon.py kaymalar).")
+    print(f"[tur3b] şut sapması: SEÇENEK {secenek(cfg)} ({'AÇIK' if secenek(cfg) == 'B' else 'KAPALI'}) | kaleci uçuşu: "
+          f"{cfg['keeper_model']['ucus']['surum']}")
     print("DUYURU ÖZETİ:", duyuru_ozeti(cfg, cfg["kod_ozetleri"]), "(bir gün önceki duyuruyla aynı olmalı)")
     print(f"kod özetleri: {len(cfg['kod_ozetleri'])} dosya; beyin ortamı: Python {cfg['ortam']['python']}, "
           f"{len(cfg['ortam']['paketler'])} paket")

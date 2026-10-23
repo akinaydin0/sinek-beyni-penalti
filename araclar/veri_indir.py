@@ -9,7 +9,7 @@ kontrol eder. Tutmayan dosya diske YAZILMAZ (geçici .part dosyası silinir).
 
 Kaynak: https://github.com/philshiu/Drosophila_brain_model, commit 91bdd1e7dcf193f3e7ca5a8933497fcef63b7960 (MIT).
 Beklenen SHA-256'lar: Completeness/Connectivity için beyin/ids.json -> model_data (dondurulmuş, taahhüde girer);
-model.py için veri/prova5/config_prova5.json -> kod_ozetleri (taahhüde girer). Hepsi ayrıca aşağıda elle yazılı;
+model.py için veri/prova7B/config_prova7B.json -> kod_ozetleri (taahhüde girer). Hepsi ayrıca aşağıda elle yazılı;
 iki kaynak birbirini tutmazsa betik durur.
 """
 from __future__ import annotations
@@ -47,7 +47,7 @@ EK = {"ad": "Supplemental_file1_neuron_annotations.tsv",
 def capraz_kontrol():
     ids = ortak.json_oku(os.path.join(ortak.BEYIN, "ids.json"))
     md = ids["model_data"]
-    cfg = ortak.json_oku(ortak.PROVA5["config"])["kod_ozetleri"]
+    cfg = ortak.json_oku(ortak.PROVA["config"])["kod_ozetleri"]  # [tur4 2026-10-23]
     beklenen = {
         "Completeness_783.csv": md["Completeness_783.csv_sha256"],
         "Connectivity_783.parquet": md["Connectivity_783.parquet_sha256"],

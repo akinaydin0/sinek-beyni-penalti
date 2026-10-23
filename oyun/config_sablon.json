@@ -1,7 +1,7 @@
 {
   "mod": "prova",
-  "not": "[tur3 2026-10-22] ŞABLON = DUYURULAN KURALLAR. Doğrudan KULLANMA: final (ya da prova) config 'commit.py yeni --sablon config_sablon.json' ile taze rastgele seed'lerle üretilir. Buradaki seed'ler yalnız testler içindir. Kural özeti (commit.py kurallar) seed'ler, mod, not, beacon.round/round_time_utc, beacon_rule, kod_ozetleri ve ortam DIŞINDAKİ her alanı kapsar; verify.py final config'i bu şablonla alan alan karşılaştırır.",
-  "kural_surumu": "tur3b-2026-10-22",
+  "not": "[tur3 2026-10-22] ŞABLON = DUYURULAN KURALLAR. Doğrudan KULLANMA: final (ya da prova) config 'commit.py yeni --sablon config_sablon.json' ile taze rastgele seed'lerle üretilir. Buradaki seed'ler yalnız testler içindir. Kural özeti (commit.py kurallar) seed'ler, mod, not, beacon.round/round_time_utc, beacon_rule, kod_ozetleri ve ortam DIŞINDAKİ her alanı kapsar; verify.py final config'i bu şablonla alan alan karşılaştırır. [tur3b 2026-10-22] BU KOPYA SEÇENEK B'DİR (şut sapması AÇIK); tek fark sut_sapmasi.acik = true.",
+  "kural_surumu": "tur3b-ucus-2026-10-22",
   "keeper": {
     "name": "Uğurcan Çakır",
     "first_name": "Uğurcan",
@@ -56,6 +56,20 @@
     "kural": "[tur3 2026-10-22] Beyin 5 şut atar. Şut n'de kaleci keeper_shift kuralının verdiği x'te durur. Tohum tabanı beacon'dan: seed_base = int(SHA-256('<randomness>|<taahhüt SHA-256>|beyin|seed_base') onaltılık ilk 8 hane, 16) mod 4000000000; trial_seed = seed_base + n (kick.py). Komut: beacon.py kaymalar basar: kick.py --final --n 5 --seed-base <seed_base> --keeper-x=<5 kayma> --commit-sha256 <taahhüt>."
   },
   "skor_kurali": "[tur3 2026-10-22] gol -> SİNEK +1; kurtarış, direk, aut (wide) ve üstten aut (over) -> ÇAKIR +1. 5 şutun hepsi sayılır, yeniden deneme yok. SİNEK en az 3 golle kazanır.",
+  "sut_sapmasi": {
+    "acik": true,
+    "surum": "sapma-v1",
+    "teknik": "side-foot (iç taraf)",
+    "delta_h": 0.5056909,
+    "alpha_h_zemin": 0.123205,
+    "alpha_h_yuksek": 0.138678,
+    "delta_v": 2.057649,
+    "alpha_v_zemin": 0.000594,
+    "alpha_v_yuksek": 0.001372,
+    "yukseklik_ref_m": 1.6,
+    "olcek": 0.332,
+    "kural": "[tur3b 2026-10-22] SEÇENEK B (varsayılan KAPALI). Açıksa beynin nişanı 'niyet' sayılır ve ayak sabit, önceden kayıtlı bir yürütme hatası ekler: u1 = U(kseed, 'kick<n>|sapma_u1'), u2 = U(kseed, 'kick<n>|sapma_u2') (kseed = şut n'nin beacon karışmış kaleci seed'i); z1 = sqrt(-2 ln u1)·cos(2π u2), z2 = sqrt(-2 ln u1)·sin(2π u2); f = kırp(nişan_y / yukseklik_ref_m, 0, 1); σx = olcek·(alpha_h_zemin + (alpha_h_yuksek - alpha_h_zemin)·f)·hız^delta_h; σy = olcek·(alpha_v_zemin + (alpha_v_yuksek - alpha_v_zemin)·f)·hız^delta_v; gerçek nişan = niyet + (σx·z1, σy·z2). Alpha/delta: Hunter ve ark. 2018 (J Biomech 72:159-166), iç taraf vuruşu, yerdeki ve 1,6 m'deki hedef. olcek: gerçek maç verisine (kaleyi bulmayan penaltı oranı) kalibrasyon, MODEL.md bölüm 8. Aut, üstten aut ve direk ÇAKIR'a sayılır. Sonuçlar görülmeden sabitlendi; sonradan ayar yok."
+  },
   "physics": {
     "g": 9.81,
     "rho_air": 1.2,
@@ -103,8 +117,6 @@
     "dive_ref_rating": 75,
     "dive_speed_per_point": 0.01,
     "push_time_s": 0.4,
-    "travel_frac_ref": 0.795,
-    "travel_frac_per_point": 0.003,
     "com_height_frac": 0.52,
     "leg_frac": 0.52,
     "torso_frac": 0.27,
@@ -139,6 +151,20 @@
       "a": -0.0447,
       "b": 1.72,
       "kaynak": "[tur3 2026-10-22] Akın kararı: AÇIK. Hunter ve ark. 2018: menzil içindeki topu durdurma olasılığı P = kırp(a·v_şut + b): 20 m/s %82,6, 30 m/s %37,9. Temas olup durduramazsa sonuç gol (beaten)."
+    },
+    "ucus": {
+      "surum": "balistik-v1",
+      "toe_frac": 0.08,
+      "leg_angle_takeoff_deg": 65.0,
+      "torso_lean_takeoff_deg": 40.0,
+      "sidestep_lift_m": 0.05,
+      "landing_keep_h": 0.5,
+      "slide_mu": 0.5,
+      "step_time_min_s": 0.25,
+      "crouch_com_min_m": 0.5,
+      "hand_settle_delay_s": 0.15,
+      "reach_ref_t_s": 0.5,
+      "not": "[tur3b 2026-10-22] Balistik dalış (MODEL.md bölüm 2): itme (push_time_s) boyunca ayaklar yerde, ağırlık merkezi (COM) yana sabit ivmeyle kalkış hızına (dive_speed: Diving'den) çıkar, dikeyde önce çöküp (countermovement) kalkar; uçuşta COM bir mermi gibi gider (yatay hız sabit, dikey ivme -g); COM yatma yüksekliğine inince iner, sürtünmeyle kayıp durur. Eski 'yatay uçup havada duran' yol ve travel_frac_* (yol sınırı) kaldırıldı. Kaynaklar ve varsayımlar MODEL.md'de."
     }
   }
 }

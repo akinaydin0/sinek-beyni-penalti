@@ -1,4 +1,5 @@
-# [tur3b 2026-10-22] Üç işletim sisteminde: kur -> veri indir + SHA-256 -> testler -> prova5'i beyin yeniden koşusuyla
+# [tur3b 2026-10-22] Üç işletim sisteminde: kur -> veri indir + SHA-256 -> testler -> provayı beyin yeniden koşusuyla
+# [tur4 2026-10-23] Prova artık PROVA7B (tur3b kodu, seçenek B). Olumsuz denemeler sebebini de kontrol eder.
 # doğrula -> spike'lar Mac referansıyla bit bit aynı mı? Ayrıca tanı: Brian2 numpy hedefiyle aynı mı, süreler.
 name: dogrulama
 
@@ -64,7 +65,7 @@ jobs:
       - name: "3) testler"
         run: python -I araclar/testler.py
 
-      - name: "4) doğrula: prova5, beyin yeniden koşusu dahil"
+      - name: "4) doğrula: PROVA7B, beyin yeniden koşusu dahil"
         id: dogrula
         continue-on-error: true
         run: python -I araclar/dogrula.py --beklenen prova --cikti ci_cikti/verify_${{ matrix.ad }}.txt --json ci_cikti/dogrula_${{ matrix.ad }}.json
@@ -94,9 +95,14 @@ jobs:
           python -I araclar/dogrula.py --cikti ci_cikti/negatif_${{ matrix.ad }}.txt --json ci_cikti/negatif_${{ matrix.ad }}.json
           kod=$?
           echo "verify çıkış kodu: $kod (1 = DOĞRULANAMADI beklenir)"
-          test "$kod" = "1"
+          # [tur4 2026-10-23] doğru sebepten mi düştü? (derleme komutu hata verdi; çıktıdaki çift
+          # brian_extensions/…/brian_extensions/ yolu setuptools'un normal ara dosya adı, sebep değil)
+          grep -q "_cython_magic_.*returned non-zero exit status" ci_cikti/negatif_${{ matrix.ad }}.txt
+          sebep=$?
+          echo "sebep derleme mi: $sebep (0 = evet)"
+          test "$kod" = "1" && test "$sebep" = "0"
 
-      - name: "benzetim: Türkçe 8-bit yerel ayar (ISO-8859-9, Windows cp1254 gibi 'ş' = 0xFE), .cmd kalkanının Linux eşi"
+      - name: "benzetim: Türkçe 8-bit yerel ayar (ISO-8859-9, Windows cp1254 gibi 'ş' = 0xFE): kalkansız düşer, varsayılan dogrula.py geçer"
         if: always() && runner.os == 'Linux'
         continue-on-error: true
         shell: bash
@@ -105,14 +111,14 @@ jobs:
           export LC_ALL=tr_TR.ISO-8859-9
           beyin/.venv/bin/python -I -c "import locale,sys;print('alt süreç kodlaması:', locale.getpreferredencoding(False), sys.stderr.encoding)"
           set +e
-          python -I araclar/dogrula.py --cikti ci_cikti/latin5_kalkansiz_${{ matrix.ad }}.txt --json ci_cikti/latin5_kalkansiz_${{ matrix.ad }}.json > /dev/null
+          # [tur4 2026-10-23] 1) kalkan bilerek kapalı (düz venv python) 2) README'deki komutun aynısı: dogrula.py
+          # kalkanı (beyin/.venv/bin/python_utf8) kendisi kullanır
+          python -I araclar/dogrula.py --beyin-python "$PWD/beyin/.venv/bin/python" --cikti ci_cikti/latin5_kalkansiz_${{ matrix.ad }}.txt --json ci_cikti/latin5_kalkansiz_${{ matrix.ad }}.json > /dev/null
           k1=$?
-          printf '#!/bin/sh\nexec "%s" -X utf8 "$@"\n' "$PWD/beyin/.venv/bin/python" > "$RUNNER_TEMP/py_utf8"
-          chmod +x "$RUNNER_TEMP/py_utf8"
-          python -I araclar/dogrula.py --beyin-python "$RUNNER_TEMP/py_utf8" --cikti ci_cikti/latin5_kalkanli_${{ matrix.ad }}.txt --json ci_cikti/latin5_kalkanli_${{ matrix.ad }}.json > /dev/null
+          python -I araclar/dogrula.py --cikti ci_cikti/latin5_kalkanli_${{ matrix.ad }}.txt --json ci_cikti/latin5_kalkanli_${{ matrix.ad }}.json > /dev/null
           k2=$?
           grep -h "beyin yeniden koşusu başarısız\|SONUÇ:" ci_cikti/latin5_kalkansiz_${{ matrix.ad }}.txt ci_cikti/latin5_kalkanli_${{ matrix.ad }}.txt
-          echo "kalkansız (düz python) çıkış $k1 (beklenen 1: DOĞRULANAMADI) | kalkanlı (-X utf8) çıkış $k2 (beklenen 3: PROVA DOĞRULANDI)"
+          echo "kalkansız (düz python) çıkış $k1 (beklenen 1: DOĞRULANAMADI) | varsayılan dogrula.py (python_utf8) çıkış $k2 (beklenen 3: PROVA DOĞRULANDI)"
           test "$k1" = "1" && test "$k2" = "3"
 
       - name: özet

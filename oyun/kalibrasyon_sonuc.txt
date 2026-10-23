@@ -1,46 +1,31 @@
-# kalibrasyon.py çıktısı (PROVA kontrolü) — varsayılan model (temas = kurtarış, brief kuralı)
-kaleci: tepki 0.248 s | dalış hızı 4.20 m/s | tam uzanma erişimi 2.90 m | merkeze çekilme %40
+# kalibrasyon.py çıktısı (PROVA kontrolü) — [tur3b 2026-10-22] BALİSTİK KALECİ, config_sablon.json (Hunter açık, merkeze çekilme 0)
+# komut: python3.12 -I kalibrasyon.py --config config_sablon.json --n 200 --harita 60
+# eski yolun (havada duran kaleci) aynı komutla sonucu: ../tur3b_olcum/kalibrasyon_ONCE_eski_motor.txt (genel %17,4); eski brief kuralı (temas = kurtarış) sonuçları: _yedek_tur3b_oncesi/oyun/kalibrasyon_sonuc.txt
+
+kaleci: tepki 0.248 s | dalış hızı 4.20 m/s | tam uzanma erişimi 3.33 m | merkeze çekilme %0
 
 Bar-Eli koşullu kurtarış oranları (model / gerçek), hücre başına 200 isabetli şut:
-  vuruş left   | kaleci left  : model % 51.5   gerçek % 29.6   (n_gerçek=54)
+  vuruş left   | kaleci left  : model % 30.5   gerçek % 29.6   (n_gerçek=54)
   vuruş left   | kaleci stay  : model %  0.0   gerçek %  0.0   (n_gerçek=1)
   vuruş left   | kaleci right : model %  0.0   gerçek %  0.0   (n_gerçek=37)
-  vuruş centre | kaleci left  : model % 15.0   gerçek %  9.8   (n_gerçek=41)
-  vuruş centre | kaleci stay  : model % 50.5   gerçek % 60.0   (n_gerçek=10)
-  vuruş centre | kaleci right : model % 18.0   gerçek %  3.2   (n_gerçek=31)
+  vuruş centre | kaleci left  : model %  6.0   gerçek %  9.8   (n_gerçek=41)
+  vuruş centre | kaleci stay  : model % 32.0   gerçek % 60.0   (n_gerçek=10)
+  vuruş centre | kaleci right : model %  6.5   gerçek %  3.2   (n_gerçek=31)
   vuruş right  | kaleci left  : model %  0.0   gerçek %  0.0   (n_gerçek=46)
-  vuruş right  | kaleci stay  : model %  0.5   gerçek %  0.0   (n_gerçek=7)
-  vuruş right  | kaleci right : model % 49.5   gerçek % 25.4   (n_gerçek=59)
-  Bar-Eli ağırlıklı genel: model %25.8   gerçek %14.7   (Hunter 2018: %16,5)
+  vuruş right  | kaleci stay  : model %  0.0   gerçek %  0.0   (n_gerçek=7)
+  vuruş right  | kaleci right : model % 33.5   gerçek % 25.4   (n_gerçek=59)
+  Bar-Eli ağırlıklı genel: model %15.4   gerçek %14.7   (Hunter 2018: %16,5)
 
 Kurtarış haritası: 24 m/s, kaleci ortada, seed'den gelen gerçek plan dağılımı, hücre başına 60 çekiliş
 (x+ = kalecinin solu; satırlar yükseklik, m)
   y\x    -3.3   -2.5   -1.5   -0.5    0.5    1.5    2.5    3.3
-   2.2     0%    10%    12%    13%    17%    20%    13%     0%
-   1.7     0%    35%    12%    12%    15%    20%    42%     0%
-   1.0     0%    38%    37%    45%    53%    45%    50%     0%
-   0.3     0%    22%    12%     0%     2%    22%    40%     0%
+   2.2     0%     8%     8%     5%     5%     7%    12%     0%
+   1.7     0%    10%     5%     7%     7%     5%    13%     0%
+   1.0    20%    23%     7%     5%     7%     7%    20%    18%
+   0.3    17%    15%    25%    10%    13%    27%    23%    25%
 
-# aynı, isteğe bağlı Hunter (2018) menzil-içi kurtarış olasılığı AÇIK
-kaleci: tepki 0.248 s | dalış hızı 4.20 m/s | tam uzanma erişimi 2.90 m | merkeze çekilme %40
-değiştirilen: ['keeper_model.in_reach_save_model={"a":-0.0447,"b":1.72}']
-
-Bar-Eli koşullu kurtarış oranları (model / gerçek), hücre başına 200 isabetli şut:
-  vuruş left   | kaleci left  : model % 36.0   gerçek % 29.6   (n_gerçek=54)
-  vuruş left   | kaleci stay  : model %  0.0   gerçek %  0.0   (n_gerçek=1)
-  vuruş left   | kaleci right : model %  0.0   gerçek %  0.0   (n_gerçek=37)
-  vuruş centre | kaleci left  : model %  8.5   gerçek %  9.8   (n_gerçek=41)
-  vuruş centre | kaleci stay  : model % 32.5   gerçek % 60.0   (n_gerçek=10)
-  vuruş centre | kaleci right : model %  9.5   gerçek %  3.2   (n_gerçek=31)
-  vuruş right  | kaleci left  : model %  0.0   gerçek %  0.0   (n_gerçek=46)
-  vuruş right  | kaleci stay  : model %  0.5   gerçek %  0.0   (n_gerçek=7)
-  vuruş right  | kaleci right : model % 35.0   gerçek % 25.4   (n_gerçek=59)
-  Bar-Eli ağırlıklı genel: model %17.4   gerçek %14.7   (Hunter 2018: %16,5)
-
-Kurtarış haritası: 24 m/s, kaleci ortada, seed'den gelen gerçek plan dağılımı, hücre başına 60 çekiliş
-(x+ = kalecinin solu; satırlar yükseklik, m)
-  y\x    -3.3   -2.5   -1.5   -0.5    0.5    1.5    2.5    3.3
-   2.2     0%    10%    12%    10%    10%    15%    12%     0%
-   1.7     0%    33%    12%     8%     8%    15%    30%     0%
-   1.0     0%    37%    35%    40%    37%    32%    35%     0%
-   0.3     0%    22%    12%     0%     2%    17%    27%     0%
+# [tur3b] şut sapması (seçenek B) ölçeği: python3.12 -I kalibrasyon.py --config config_sablon.json --sapma-kalibre --sapma-n 12000
+Şut sapması kalibrasyonu: hedef kaçan oranı %4.78 (Vollmer ve ark. 2024, maç içi), 12000 şut, standart şut kümesi NİYET nişanı sayılır, kaleci gerçek dağılımdan (draw_plan)
+  olcek 1.0000: kaçan %15.42 (aut 392, üst 606, direk 852) | üst sıra %34.1, alt sıra % 7.1
+SONUÇ olcek = 0.332: kaçan %4.78 | aut %0.09, üstten aut %0.38, direk %4.31 | kurtarış %12.03 | gol %83.18
+   Almeida 2016 kıyası (gerçek geçiş yüksekliğine göre): üst sıra model %10.5 (gerçek ~%13,7), alt sıra model %2.3 (gerçek ~%2,7)

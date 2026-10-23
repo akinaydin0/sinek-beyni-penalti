@@ -40,7 +40,7 @@ def ilk_fark(ref_i, ref_t, i, t):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--beyin", default=str(KOK / "beyin"))
-    ap.add_argument("--karar", default=str(KOK / "veri" / "prova5" / "prova5_beyin_kararlari.json"))
+    ap.add_argument("--karar", default=str(KOK / "veri" / "prova7B" / "prova7B_beyin_kararlari.json"))  # [tur4 2026-10-23]
     ap.add_argument("--hedef", choices=["cython", "numpy", "degistirme"], default="degistirme",
                     help="Brian2 codegen.target; 'degistirme' = beyin_model.py ne seçtiyse (cython)")
     ap.add_argument("--sutlar", default="1,2,3,4,5")

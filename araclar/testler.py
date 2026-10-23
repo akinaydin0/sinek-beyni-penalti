@@ -6,10 +6,11 @@
 
 Üç kontrol:
   A. Dosyalar taahhütteki gibi mi? Taahhüde giren 21 dosyanın (11 oyun + 10 beyin) SHA-256'sı
-     veri/prova5/config_prova5.json -> kod_ozetleri ile aynı mı. Tutmazsa en sık sebep Windows'ta git'in satır
+     veri/prova7B/config_prova7B.json -> kod_ozetleri ile aynı mı. Tutmazsa en sık sebep Windows'ta git'in satır
      sonlarını CRLF'ye çevirmesidir (.gitattributes bunu kapatır; ZIP yerine 'git clone' kullan).
-  B. Duyuru özeti: oyun/commit.py kurallar -> 572bbd8a… (veri/duyuru.json ile aynı olmalı).
-  C. oyun/tests.py: 22 test (ağa çıkmaz; beyin koşusu burada taklit edilir, gerçeği dogrula.py'de).
+  B. Duyuru özeti: oyun/commit.py kurallar -> ab65e95b… (veri/duyuru.json ile aynı olmalı).
+  C. oyun/tests.py: 29 test (ağa çıkmaz; beyin koşusu burada taklit edilir, gerçeği dogrula.py'de).
+[tur4 2026-10-23] tur3b kodu (balistik kaleci + seçenek B şut sapması) ve PROVA7B'ye güncellendi.
 """
 from __future__ import annotations
 
@@ -22,7 +23,7 @@ import ortak  # noqa: E402
 
 
 def dosya_kontrol():
-    ko = ortak.json_oku(ortak.PROVA5["config"])["kod_ozetleri"]
+    ko = ortak.json_oku(ortak.PROVA["config"])["kod_ozetleri"]
     kotu = []
     for anahtar, sha in sorted(ko.items()):
         p = os.path.join(ortak.KOK, *anahtar.split("/"))
@@ -53,14 +54,14 @@ def main():
     kod, cikti, s = ortak.kos([sys.executable, "-I", "-X", "utf8", "-B", os.path.join(ortak.OYUN, "commit.py"),
                                "kurallar"])
     beklenen = ortak.json_oku(os.path.join(ortak.VERI, "duyuru.json"))["duyuru_ozeti_sha256"]
-    sonuc["B"] = kod == 0 and beklenen in cikti and beklenen == ortak.PROVA5["duyuru_sha"]
+    sonuc["B"] = kod == 0 and beklenen in cikti and beklenen == ortak.PROVA["duyuru_sha"]
     print(("TAMAM  " if sonuc["B"] else "HATA   ") + f"duyuru özeti {beklenen[:12]}… "
           f"{'tutuyor' if sonuc['B'] else 'TUTMUYOR'} ({s:.1f} s)")
 
     ortak.baslik("C. oyun/tests.py")
     kod, cikti, s = ortak.kos([sys.executable, "-I", "-X", "utf8", "-B", os.path.join(ortak.OYUN, "tests.py")])
     son = [x for x in cikti.splitlines() if "test geçti" in x]
-    sonuc["C"] = kod == 0 and bool(son) and son[-1].split()[0] in ("22/22",)
+    sonuc["C"] = kod == 0 and bool(son) and son[-1].split()[0] in ("29/29",)  # [tur4 2026-10-23] tur3b: 29 test
     print(("TAMAM  " if sonuc["C"] else "HATA   ") + f"oyun/tests.py: {son[-1] if son else 'sonuç satırı yok'} "
           f"(çıkış {kod}, {s:.1f} s)")
 

@@ -5,6 +5,8 @@ tests.py - penaltı motoru testleri. Düz betik olarak çalışır (pytest gerek
     python3.12 -I tests.py
 [tur3 2026-10-22] test_tur3_* testleri yeni akışı (Hunter açık, kayma, drand beacon + BLS, kurallar, kod özetleri,
 beyin tohumu, verify etiketleri ve kurcalama) sınar; ağa çıkmaz.
+[tur3b 2026-10-22] test_tur3b_* testleri balistik kaleciyi (uçuş fiziği, adım/sıçrama, tutuştan sonra eller) ve
+şut sapmasını (seçenek B: formül, KAT, dağılım, determinizm, skor, şablon kuralları, verify ve JS) sınar.
 pytest varsa 'pytest tests.py' de çalışır (fonksiyonlar test_ ile başlar).
 """
 from __future__ import annotations
@@ -34,7 +36,10 @@ def kick(x, y, v, p, keeper_x=0.0, cfg=CFG):
 
 def test_keeper_numbers_from_ratings():
     assert abs(KP["reaction_s"] - 0.248) < 0.0005, KP["reaction_s"]
-    assert abs(KP["reach_m"] - 2.9) < 0.02, KP["reach_m"]
+    # [tur3b 2026-10-22] reach_m artık bir sınır değil: kör dalışta (ortalama çıkış -0,19 s) 0,50 s'deki parmak ucu
+    # erişimi. Eski model 2,90 m'de durup havada asılı kalıyordu; balistik modelde ~3,3 m (MODEL.md bölüm 2).
+    assert 3.0 < KP["reach_m"] < 3.6, KP["reach_m"]
+    assert abs(KP["v_dive"] - 4.2) < 1e-9
 
 
 def test_24ms_reaches_line_in_047_052():
@@ -130,7 +135,13 @@ def test_contract_fields():
         for a, b in zip(tr, tr[1:]):
             assert abs((b[0] - a[0]) - 1 / 60) < 2e-4
         assert isinstance(k["margin_cm"], int) and k["explain"]
-    assert {"goal", "save"} <= outs and outs & {"wide", "over", "post"}
+        # [tur3b 2026-10-22] ek alanlar: kalecinin uçuş evreleri, şut sapması (A'da null)
+        assert kp["ucus"]["model"] == "balistik-v1" and kp["ucus"]["mode"] in ("dive", "step", "stand")
+        assert s["sapma"] is None and abs(s["aim_effective"]["x"] - s["aim"]["x"]) < 1e-4
+    # [tur3b] balistik kalecide stub'ın 1. şutu artık gol (erken çıkan kaleci top gelince yere iniyor); kurtarış
+    # alanları ayrıca test_tur3b_hands_settle_after_catch içinde sınanıyor
+    assert "goal" in outs and outs & {"wide", "over", "post"}
+    assert log["sut_sapmasi_acik"] is False
 
 
 def test_commitment_changes_with_any_input():
@@ -642,6 +653,244 @@ def test_tur3_score_rule():
     log = {"kicks": [{"outcome": o} for o in ("goal", "goal", "goal", "save", "wide")]}
     assert verify_mod.skor(log) == (3, 2)
     assert "aut (wide)" in SABLON["skor_kurali"] and "üstten aut (over)" in SABLON["skor_kurali"]
+
+
+# =========================================================================== [tur3b 2026-10-22] balistik kaleci + şut sapması
+import math  # noqa: E402
+
+# Testler seçenekten bağımsız: şablon A da olsa B de olsa (oyun_B/config_sablon.json) aynı tests.py geçer.
+SABLON_A = copy.deepcopy(SABLON)
+SABLON_A["sut_sapmasi"]["acik"] = False
+SABLON_B = copy.deepcopy(SABLON)
+SABLON_B["sut_sapmasi"]["acik"] = True
+KP_S = pm.keeper_params(SABLON)
+
+
+def _tl(dive, leave, bstar, x0=0.0, t_ball=None, dt=1 / 600):
+    p = {"dive_dir": dive, "leave_drawn_s": leave, "u_catch": 0.5, "u_keep": 0.0}
+    return pm.KeeperTimeline(KP_S, p, x0, bstar, -1.0, 2.5, dt, t_ball=t_ball)
+
+
+def test_tur3b_dive_is_ballistic():
+    """Kalkıştan inişe ağırlık merkezi bir mermi: yatay hız sabit, dikey ivme -g; havada durup düşmek yok."""
+    g, V, dt = KP_S["g"], KP_S["v_dive"], 1 / 600
+    cases = [("left", -0.19, None), ("right", -0.35, (-2.9, 0.9)), ("left", -0.10, (2.6, 2.1)),
+             ("right", -0.05, (-2.5, 0.3)), ("left", 0.10, (1.5, 1.6))]
+    for dive, leave, bstar in cases:
+        kt = _tl(dive, leave, bstar, x0=0.3)
+        s = pm.SIDE_SIGN[dive]
+        assert kt.mode == "dive" and kt.t_takeoff < kt.t_land < kt.t_rest, kt.summary()
+        y0 = KP_S["com0_y"]
+        ts = [kt.t_m + i * dt for i in range(int((kt.t_rest + 0.2 - kt.t_m) / dt))]
+        body = [kt._body(t) for t in ts]
+        for (t, (C, th, F, _)), (t2, (C2, _, F2, _)) in zip(zip(ts, body), zip(ts[1:], body[1:])):
+            vx = (C2[0] - C[0]) / dt
+            assert abs(C2[0] - C[0]) <= (V + 1e-6) * dt and abs(C2[1] - C[1]) <= 6.0 * dt, (dive, t)  # süreklilik
+            assert F[1] >= 0.0 and math.dist(F, C) <= KP_S["L_push"] + 1e-9, (dive, t, F, C)            # ayak yerin altında değil, bacak boyu
+            if kt.t_takeoff + dt < t < kt.t_land - 2 * dt:                       # uçuş
+                assert abs(vx - s * V) < 1e-6, (dive, t, vx)                     # yatay hız sabit: havada durmak yok
+                assert F[1] <= C[1] + 1e-9                                        # ayaklar gövdenin altında
+            if kt.t_m < t < kt.t_m + 0.5 * KP_S["t_push"]:
+                assert F[1] <= KP_S["step_lift"] + 1e-12
+            elif kt.t_m + 0.5 * KP_S["t_push"] <= t <= kt.t_takeoff:
+                assert F[1] == 0.0                                                # itme ayağı yerde
+            if t >= kt.t_land:
+                assert abs(C[1] - KP_S["y_lying"]) < 1e-12 and s * (C2[0] - C[0]) >= -1e-12   # yerde, geri kaymıyor
+        # dikey ivme uçuşta -g
+        for t in (kt.t_takeoff + 0.05, 0.5 * (kt.t_takeoff + kt.t_land)):
+            y = [kt._body(t + j * dt)[0][1] for j in (-1, 0, 1)]
+            assert abs((y[0] - 2 * y[1] + y[2]) / dt ** 2 + g) < 1e-6, (dive, t)
+        assert kt.apex_y <= y0 + KP_S["jump_cap"] + 1e-9
+        # iniş ve kayma: v1²/(2μg) kadar kayıp durur
+        v1 = V * KP_S["land_keep"]
+        x_end = kt._body(kt.t_rest + 0.5)[0][0]
+        assert abs(x_end - (kt.x_land + s * v1 * v1 / (2 * KP_S["slide_mu"] * g))) < 1e-9
+        assert kt._body(kt.t_rest + 0.5)[0] == kt._body(kt.t_rest + 1.0)[0]
+        # gövde ve kol boyları fiziksel
+        for i in range(0, kt.n, 7):
+            C, S, Hh = kt.C[i], kt.S[i], kt.Hd[i]
+            assert math.dist(S, Hh) <= KP_S["L_arm"] + 1e-6 or Hh[1] == 0.02
+            assert math.dist(C, S) <= KP_S["L_torso"] + 1e-9
+
+
+def test_tur3b_old_superman_path_is_gone():
+    """Prova5'in 1. şutu: eski model COM'u -1,05 m'de yatayda durdurup 0,5 s dikine düşürüyordu."""
+    r = kick(-1.64, 1.52, 26.3, plan("right", -0.212), keeper_x=0.477, cfg=SABLON)
+    path = r["path"]
+    kt = r["keeper"]
+    fl = [row for row in path if kt.t_takeoff < row[0] < kt.t_land]
+    vx = [(b[1] - a[1]) * 60 for a, b in zip(fl, fl[1:])]
+    assert vx and max(vx) < -4.1 and min(vx) > -4.3, vx[:3]      # bütün uçuş boyunca ~4,2 m/s yana
+    dropping = [row for row in fl if row[0] > kt.t_takeoff + 0.2]
+    assert dropping and all(abs(b[1] - a[1]) * 60 > 4.0 for a, b in zip(dropping, dropping[1:]))   # düşerken de yana gidiyor
+
+
+def test_tur3b_stay_keeper_steps_or_dives_after_reaction():
+    rt = KP_S["reaction_s"]
+    kt = _tl("stay", 0.0, (1.5, 0.5))         # yakın top: adım, uçuş yok
+    assert kt.mode == "step" and kt.t_m == rt
+    for t in (rt + 0.05, rt + 0.2, rt + 0.6):
+        C, th, F, _ = kt._body(t)
+        assert F[1] == 0.0 and C[1] >= KP_S["crouch_min"] - 1e-12 and th == math.pi / 2
+    a = kt._body(rt + kt.T_step + 0.01)[0]
+    b = kt._body(rt + kt.T_step + 0.5)[0]
+    assert a == b                                # yumuşak durdu, sonra kımıldamıyor
+    kt = _tl("stay", 0.0, (0.2, 2.3))          # ortaya yüksek top: kısa sıçrama, havada asılı kalmak yok
+    assert kt.mode in ("step", "stand")
+    ys = [kt._body(rt + i * 0.01)[0][1] for i in range(150)]
+    assert max(ys) <= KP_S["com0_y"] + (0.5 * KP_S["g"] * KP_S["t_push"]) ** 2 / (2 * KP_S["g"]) + 1e-9
+    assert abs(ys[-1] - KP_S["com0_y"]) < 1e-9   # ayağının üstüne geri indi
+    kt = _tl("stay", 0.0, (-2.8, 1.0))         # uzak top: tepkiden sonra gerçek bir dalış
+    assert kt.mode == "dive" and kt.t_m == rt and kt.s == -1 and kt.adapted
+
+
+def test_tur3b_hands_settle_after_catch():
+    """Tutulan top yere yatan kalecinin elinde: el (ve top) havada dik kolla kalmıyor; top yerin altına girmiyor."""
+    found = None
+    for lv in [round(-0.40 + 0.02 * i, 2) for i in range(25)]:
+        for x, y in ((2.0, 0.9), (2.2, 1.0), (1.8, 0.6), (2.4, 0.5)):
+            r = kick(x, y, 19.0, plan("left", lv, u_catch=0.0), cfg=SABLON)
+            if r["outcome"] == "save" and r["contact"]["type"] == "catch" and r["keeper"].mode == "dive":
+                found = r
+                break
+        if found:
+            break
+    assert found, "tutuş bulunamadı"
+    kt = found["keeper"]
+    t_end = found["traj"][-1][0]
+    assert t_end > kt.t_land
+    last = found["traj"][-1]
+    hand = kt.state(last[0])["H"]
+    assert hand[1] < 0.6 and last[2] >= 0.11 - 1e-9, (hand, last)
+
+
+def _u_ref(seed, label):
+    return _u_bagimsiz(seed, label)
+
+
+def _sapma_ref(sc, kseed, n, ax, ay, v):
+    """Belgedeki formülün (MODEL.md bölüm 8) penalty_model'e dokunmadan yeniden yazılmışı."""
+    u1, u2 = _u_ref(kseed, f"kick{n}|sapma_u1"), _u_ref(kseed, f"kick{n}|sapma_u2")
+    z1 = math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
+    z2 = math.sqrt(-2 * math.log(u1)) * math.sin(2 * math.pi * u2)
+    f = min(max(ay / sc["yukseklik_ref_m"], 0.0), 1.0)
+    sx = sc["olcek"] * (sc["alpha_h_zemin"] + (sc["alpha_h_yuksek"] - sc["alpha_h_zemin"]) * f) * v ** sc["delta_h"]
+    sy = sc["olcek"] * (sc["alpha_v_zemin"] + (sc["alpha_v_yuksek"] - sc["alpha_v_zemin"]) * f) * v ** sc["delta_v"]
+    return sx * z1, sy * z2, sx, sy
+
+
+def test_tur3b_scatter_rule():
+    sc = SABLON_B["sut_sapmasi"]
+    # A (varsayılan): kapalı, hiçbir şey değişmez
+    assert type(SABLON["sut_sapmasi"]["acik"]) is bool and pm.draw_scatter(SABLON_A, 123, 1, {"x": 1.0, "y": 1.0}, 25) is None
+    # formül = belge (bağımsız yeniden yazım) ve verify.py'deki bilinen cevap (KAT)
+    for kseed, n, ax, ay, v in ((1, 1, 0.0, 0.5, 20.0), (987654321987654321, 3, -2.1, 1.55, 27.3), (5, 5, 3.0, 2.3, 16.0)):
+        d = pm.draw_scatter(SABLON_B, kseed, n, {"x": ax, "y": ay}, v)
+        ex, ey, sx, sy = _sapma_ref(sc, kseed, n, ax, ay, v)
+        assert abs(d["err"][0] - ex) < 1e-12 and abs(d["err"][1] - ey) < 1e-12 and d["sigma"] == (sx, sy)
+        assert d["aim"] == {"x": ax + d["err"][0], "y": ay + d["err"][1]}
+    k = verify_mod.KAT_SAPMA
+    ex, ey, _, _ = _sapma_ref(sc, k["kseed"], k["n"], k["aim"]["x"], k["aim"]["y"], k["speed"])
+    assert abs(ex - k["hata_m"][0]) < 1e-9 and abs(ey - k["hata_m"][1]) < 1e-9
+    # Hunter 2018: hızla ve yükseklikle büyür
+    s = lambda y, v: pm.draw_scatter(SABLON_B, 7, 1, {"x": 0, "y": y}, v)["sigma"]  # noqa: E731
+    assert s(0.3, 20)[0] < s(0.3, 28)[0] and s(0.3, 20)[1] < s(0.3, 28)[1] and s(0.2, 25)[1] < s(1.6, 25)[1]
+    assert s(1.6, 25) == s(2.2, 25)           # 1,6 m üstü yüksek hedef değeri
+    # dağılım: N(0,1), bağımsız
+    zs = [pm.draw_scatter(SABLON_B, i, 1 + i % 5, {"x": 0, "y": 1}, 25)["z"] for i in range(6000)]
+    for j in (0, 1):
+        m = sum(z[j] for z in zs) / len(zs)
+        sd = math.sqrt(sum((z[j] - m) ** 2 for z in zs) / len(zs))
+        assert abs(m) < 0.05 and abs(sd - 1) < 0.04, (j, m, sd)
+    cor = sum(z[0] * z[1] for z in zs) / len(zs)
+    assert abs(cor) < 0.05
+    # motor: deterministik, beacon'a bağlı, A ile B aynı kaleci planını kullanır
+    dec = copy.deepcopy(STUB)
+    a1 = pm.dumps_readable(pm.run(SABLON_B, dec))
+    assert a1 == pm.dumps_readable(pm.run(copy.deepcopy(SABLON_B), copy.deepcopy(dec)))
+    la, lb = pm.run(SABLON_A, dec), pm.run(SABLON_B, dec)
+    assert la["sut_sapmasi_acik"] is False and lb["sut_sapmasi_acik"] is True
+    for ka, kb in zip(la["kicks"], lb["kicks"]):
+        assert ka["keeper"]["seed_uniforms"] == kb["keeper"]["seed_uniforms"]
+        assert ka["shot"]["sapma"] is None and kb["shot"]["sapma"]["nisan_niyet"] == ka["shot"]["aim"]
+        assert abs(kb["shot"]["aim_effective"]["x"] - kb["shot"]["sapma"]["nisan_gercek"]["x"]) < 1e-9
+    c1 = dict(SABLON_B, beacon_rule="x")
+    e1 = pm.run(c1, dec, beacon="aa" * 32)["kicks"][0]["shot"]["sapma"]["hata_m"]
+    e2 = pm.run(c1, dec, beacon="bb" * 32)["kicks"][0]["shot"]["sapma"]["hata_m"]
+    assert e1 != e2
+    # sapan şut aut / üstten aut / direk olabilir ve ÇAKIR'a sayılır
+    seen = set()
+    for i in range(1500):
+        d = {"kicks": [{"n": 1, "aim": {"x": -3.4, "y": 2.05}, "speed_mps": 28.0, "scene": {"keeper_x": 0.4}}]}
+        c = dict(SABLON_B, keeper_seeds=[i] + SABLON_B["keeper_seeds"][1:])
+        o = pm.run(c, d)["kicks"][0]
+        seen.add(o["outcome"])
+        if o["outcome"] in ("wide", "over", "post"):
+            assert verify_mod.skor({"kicks": [o]}) == (0, 1)
+            assert "saptı" in o["explain"], o["explain"]
+        if {"goal", "wide", "over", "post"} <= seen:
+            break
+    assert {"goal", "wide", "over", "post"} <= seen, seen
+
+
+def test_tur3b_template_and_rules():
+    km = SABLON["keeper_model"]
+    assert km["ucus"]["surum"] == "balistik-v1" and "travel_frac_ref" not in km
+    assert cm.karar_farklari(SABLON) == [] and cm.karar_farklari(SABLON_A) == [] and cm.karar_farklari(SABLON_B) == []
+    assert cm.secenek(SABLON_A) == "A" and cm.secenek(SABLON_B) == "B" and cm.secenek(SABLON) in ("A", "B")
+    assert SABLON["sut_sapmasi"]["olcek"] == cm.TUR3B_KURALLARI["sut_sapmasi.olcek"]
+    for fn in (lambda c: c["sut_sapmasi"].update(olcek=0.2), lambda c: c["sut_sapmasi"].update(acik="evet"),
+               lambda c: c["sut_sapmasi"].update(delta_v=1.5), lambda c: c["keeper_model"]["ucus"].update(surum="eski")):
+        c = copy.deepcopy(SABLON)
+        fn(c)
+        assert cm.karar_farklari(c), c["sut_sapmasi"]
+    c = copy.deepcopy(SABLON)
+    c["keeper_model"].pop("ucus")
+    assert _raises(pm.keeper_params, c)          # eski kinematik yok
+    assert cm.kural_ozeti(SABLON_A) != cm.kural_ozeti(SABLON_B)   # A/B seçimi duyuru özetine girer
+
+
+def test_tur3b_verify_option_b():
+    kod = cm.kod_ozetleri_hesapla(HERE, BEYIN_DIR)
+    ds_a = cm.duyuru_ozeti(SABLON_A, kod)
+    ds_b = cm.duyuru_ozeti(SABLON_B, kod)
+    m = _mini("final", degis=lambda c: c["sut_sapmasi"].update(acik=True))
+    cfg, t, bc, dec, log = m
+    assert all(k["shot"]["sapma"] for k in log["kicks"])
+    lab, lines = _v(*m, sablon=SABLON_B, kural_sha=ds_b)
+    assert lab == "DOĞRULANDI", "\n".join(x for x in lines if not x.startswith("TAMAM"))
+    assert any("SEÇENEK B" in x for x in lines)
+    assert _v(*m, sablon=SABLON_A, kural_sha=ds_a)[0] == "DOĞRULANAMADI"   # A şablonuna ve A duyurusuna göre: kurallar farklı
+    # taahhütten sonra sapma kapatılır / log'daki sapma elle değiştirilir
+    c2 = copy.deepcopy(cfg)
+    c2["sut_sapmasi"]["acik"] = False
+    assert _v(c2, t, bc, dec, _rerun(c2, t, bc, dec), sablon=SABLON_B, kural_sha=ds_b)[0] == "DOĞRULANAMADI"
+    lg = copy.deepcopy(log)
+    lg["kicks"][0]["shot"]["sapma"]["hata_m"][0] += 0.05
+    assert _v(cfg, t, bc, dec, lg, sablon=SABLON_B, kural_sha=ds_b)[0] == "DOĞRULANAMADI"
+    # A ile de DOĞRULANDI (A şablonu ve A duyurusuyla)
+    mA = _mini("final", degis=lambda c: c["sut_sapmasi"].update(acik=False))
+    assert _v(*mA, sablon=SABLON_A, kural_sha=ds_a)[0] == "DOĞRULANDI"
+    assert _v(*mA, sablon=SABLON_B, kural_sha=ds_b)[0] == "DOĞRULANAMADI"
+    # bağımsız JS kontrolü B'nin sapmalarını da yeniden hesaplıyor
+    node = shutil.which("node")
+    if node:
+        d = tempfile.mkdtemp(prefix="tur3b_js_")
+        try:
+            paths = {}
+            for name, obj in (("b", bc), ("t", t), ("log", log), ("dec", dec)):
+                paths[name] = os.path.join(d, name + ".json")
+                pm.write_json(paths[name], obj)
+            js = os.path.join(HERE, "bagimsiz", "kontrol.mjs")
+            p = subprocess.run([node, js, paths["b"], paths["t"], paths["log"], paths["dec"]],
+                               capture_output=True, text=True, timeout=60)
+            assert p.returncode == 0 and "BAĞIMSIZ KONTROL: TUTUYOR" in p.stdout and "sapması" in p.stdout, p.stdout
+            pm.write_json(paths["log"], lg)
+            p = subprocess.run([node, js, paths["b"], paths["t"], paths["log"], paths["dec"]],
+                               capture_output=True, text=True, timeout=60)
+            assert p.returncode == 1 and "TUTMUYOR" in p.stdout
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
 
 
 def main():

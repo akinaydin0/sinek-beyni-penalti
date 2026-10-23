@@ -7,6 +7,8 @@ Saf Python 3 (yalniz standart kutuphane, numpy gerekmez). Deterministik:
 ayni karar dosyasi + ayni config + ayni motor -> bayt bayt ayni penalty_log.json.
 
 Formuller, sabitler ve kaynaklar: MODEL.md. Koordinatlar ve JSON bicimi: ../SOZLESME.md.
+[tur3b 2026-10-22] Kaleci dalisi balistik (itme -> ucus: yatay hiz sabit, dikey ivme -g -> inis -> kayma);
+istege bagli sut sapmasi (secenek B, config.sut_sapmasi.acik; varsayilan kapali). MODEL.md bolum 2 ve 8.
 Butun sayisal sabitler config dosyasindan okunur (taahhut ozetine girerler);
 burada yalnizca yapi (algoritma) vardir.
 
@@ -26,7 +28,7 @@ import sys
 from statistics import NormalDist
 
 ENGINE_NAME = "sinek-penalti/oyun/penalty_model.py"
-ENGINE_VERSION = "1.0.0"
+ENGINE_VERSION = "1.1.0"  # [tur3b 2026-10-22] balistik kaleci + isteğe bağlı şut sapması
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # Keeper 'left/right' is HIS OWN left/right (Bar-Eli et al. 2007 convention).
@@ -87,6 +89,20 @@ def seg_closest_3d(p, a, b):
 def smoothstep(f):
     f = clamp(f, 0.0, 1.0)
     return f * f * (3.0 - 2.0 * f)
+
+
+def min_jerk(f):
+    """[tur3b 2026-10-22] Minimum-jerk profile 0->1 (zero speed and acceleration at both ends)."""
+    f = clamp(f, 0.0, 1.0)
+    return f * f * f * (10.0 + f * (-15.0 + 6.0 * f))
+
+
+def hermite_end_slope(y0, y1, m1, f):
+    """[tur3b 2026-10-22] Cubic from y0 (slope 0) to y1 with end slope m1 (per unit of normalised time f).
+    With m1 > 2*(y1-y0) it dips first: the countermovement before a push-off."""
+    f = clamp(f, 0.0, 1.0)
+    f2, f3 = f * f, f * f * f
+    return y0 + (y1 - y0) * (3.0 * f2 - 2.0 * f3) + m1 * (f3 - f2)
 
 
 # --------------------------------------------------------------------------- ball physics
@@ -198,22 +214,25 @@ def solve_launch(ball, phys, aim_x, aim_y, speed):
 def keeper_params(cfg):
     """Every keeper number derives from FC ratings + height via config constants (MODEL.md)."""
     kc, km = cfg["keeper"], cfg["keeper_model"]
+    uc = km.get("ucus")
+    if not isinstance(uc, dict) or uc.get("surum") != "balistik-v1":
+        raise SystemExit("HATA: config.keeper_model.ucus (surum 'balistik-v1') yok. [tur3b 2026-10-22] Eski kaleci "
+                         "kinematiği (yatay uçup havada duran ağırlık merkezi) kaldırıldı; MODEL.md bölüm 2.")
     H = kc["height_m"]
     R = kc["ratings"]
     reaction_s = (km["rt_base_ms"] - km["rt_ms_per_point"] * (R["reflexes"] - km["rt_ref_rating"])) / 1000.0
+    # [tur3b 2026-10-22] v_dive = kalkış anındaki YATAY ağırlık merkezi hızı (uçuşta sabit kalır)
     v_dive = km["dive_speed_ref_mps"] * (1.0 + km["dive_speed_per_point"] * (R["diving"] - km["dive_ref_rating"]))
-    travel = H * (km["travel_frac_ref"] + km["travel_frac_per_point"] * (R["diving"] - km["dive_ref_rating"]))
     L_leg, L_torso, L_arm = km["leg_frac"] * H, km["torso_frac"] * H, km["arm_frac"] * H
-    return {
+    kp = {
         "H": H,
         "reaction_s": reaction_s,
         "v_dive": v_dive,
         "t_push": km["push_time_s"],
-        "travel_max": travel,
         "com0_y": km["com_height_frac"] * H,
         "L_leg": L_leg, "L_torso": L_torso, "L_arm": L_arm,
+        "L_push": (km["leg_frac"] + uc["toe_frac"]) * H,   # COM -> toe tip with the ankle extended
         "arm_from_com": L_torso + L_arm,
-        "reach_m": travel + L_torso + L_arm,  # lateral fingertip reach at full stretch
         "r_leg": km["r_leg_m"], "r_torso": km["r_torso_m"], "r_hand": km["r_hand_m"],
         "v_hand": km["hand_speed_mps"],
         "ready_hand": tuple(km["ready_hand_offset_m"]),
@@ -227,7 +246,30 @@ def keeper_params(cfg):
         "pos_pull": clamp(km["positioning_pull_per_point"] * R["positioning"], 0.0, 1.0),
         "handling": R["handling"],
         "g": cfg["physics"]["g"],
+        # [tur3b 2026-10-22] balistik dalış sabitleri (keeper_model.ucus, MODEL.md bölüm 2)
+        "leg_to": math.radians(uc["leg_angle_takeoff_deg"]),
+        "lean_to": math.radians(uc["torso_lean_takeoff_deg"]),
+        "step_lift": uc["sidestep_lift_m"],
+        "land_keep": uc["landing_keep_h"],
+        "slide_mu": uc["slide_mu"],
+        "step_min_s": uc["step_time_min_s"],
+        "crouch_min": uc["crouch_com_min_m"],
+        "settle_s": uc["hand_settle_delay_s"],
     }
+    kp["reach_m"] = nominal_reach(kp, km["leave_mean_s"], uc["reach_ref_t_s"], cfg["physics"]["rk4_hz"])
+    kp["reach_ref_t_s"] = uc["reach_ref_t_s"]
+    return kp
+
+
+def nominal_reach(kp, leave_s, t_ref, hz):
+    """[tur3b 2026-10-22] Reported 'reach_m': lateral distance from the start to the fingertips at t_ref (ball
+    arrival, ~0,50 s) for a BLIND dive leaving at the mean leave time, arms stretched along the body.
+    Not a cap: the physics has no travel limit, only take-off speed, gravity and the ground."""
+    dt = 1.0 / hz
+    kt = KeeperTimeline(kp, {"dive_dir": "left", "leave_drawn_s": leave_s}, 0.0, None, t_ref - 0.1, t_ref + dt, dt)
+    C, th, _, _ = kt._body(t_ref)
+    S = (C[0] + kp["L_torso"] * math.cos(th), C[1] + kp["L_torso"] * math.sin(th))
+    return S[0] + kp["L_arm"] * math.cos(th)
 
 
 def draw_plan(cfg, kseed: int, n: int):
@@ -251,73 +293,90 @@ def draw_plan(cfg, kseed: int, n: int):
 
 
 class KeeperTimeline:
-    """Keeper body in the keeper plane (z = keeper_plane_z) on the RK4 time grid.
-    Body = 3 capsules: legs (feet-COM), torso (COM-shoulder), arm (shoulder-hand)."""
+    """[tur3b 2026-10-22] Keeper body in the keeper plane (z = keeper_plane_z) on the RK4 time grid.
+    Body = 3 capsules: legs (feet-COM), torso (COM-shoulder), arm (shoulder-hand).
 
-    def __init__(self, kp, plan, x_start, bstar, t0, t1, dt):
+    BALLISTIC DIVE ('balistik-v1', MODEL.md section 2), replacing the old path whose COM flew sideways at constant
+    speed, stopped in mid-air and then dropped straight down:
+      1) push-off (push_time_s): COM accelerates sideways at a constant rate to the take-off speed v_dive; the
+         vertical goes through a countermovement dip (cubic) to the take-off height with the take-off vertical speed;
+         the feet stay on the ground (side-step, then the push foot is planted);
+      2) flight: COM is a projectile: horizontal speed constant, vertical a = -g (no drag, no lift);
+      3) landing when the COM reaches the lying height, then a slide with friction until rest.
+    Take-off vertical speed = v_dive*tan(dive angle), limited by the jump cap (apex) and by the countermovement
+    (the dip cannot be faster than free fall). Stay keepers step (minimum-jerk) or dive reactively after RT.
+    """
+
+    def __init__(self, kp, plan, x_start, bstar, t0, t1, dt, t_ball=None):
         self.kp, self.plan, self.dt, self.t0 = kp, plan, dt, t0
-        C0 = (x_start, kp["com0_y"])
+        y0 = kp["com0_y"]
+        C0 = (x_start, y0)
         self.C0 = C0
+        self.x0 = x_start
         t_p = kp["reaction_s"]
         side = SIDE_SIGN[plan["dive_dir"]]
         self.side = side
         self.adapted = False
+        self.mode = "stand"
+        self.s = side
+        phi = kp["phi0"]
         if side == 0:
             # Stays in the centre; starts moving only when he perceives the ball (t = reaction).
             self.t_m = t_p
             if bstar is not None:
                 dx, dy = bstar[0] - C0[0], bstar[1] - C0[1]
                 dist = math.hypot(dx, dy)
-            else:
-                dx, dy, dist = 0.0, 1.0, 0.0
-            self.d = (dx / dist, dy / dist) if dist > 1e-9 else (0.0, 1.0)
-            self.p_max = clamp(dist - kp["informed_stop_frac"] * kp["arm_from_com"], 0.0, kp["travel_max"])
-            self.is_dive = self.p_max >= kp["dive_min_travel"]
+                d = (dx / dist, dy / dist) if dist > 1e-9 else (0.0, 1.0)
+                p_need = max(0.0, dist - kp["informed_stop_frac"] * kp["arm_from_com"])
+                if p_need * abs(d[0]) >= kp["dive_min_travel"]:
+                    self.mode = "dive"      # reactive dive towards the ball, height chosen (he sees it)
+                    self.s = 1 if dx > 0 else -1
+                    phi = clamp(math.atan2(dy, abs(dx)), kp["phi_min"], kp["phi_max"])
+                    self.adapted = True
+                elif p_need > 0.0:
+                    self.mode = "step"
+                    self.step = (p_need * d[0], p_need * d[1])
         else:
             self.t_m = plan["leave_drawn_s"]
-            phi = kp["phi0"]
+            self.mode = "dive"
             # If he sees the ball before his feet leave the ground he may still pick the dive
             # HEIGHT (never the side: the side was drawn before the shot).
             if bstar is not None and t_p <= self.t_m + kp["t_push"] and (bstar[0] - x_start) * side > 0:
                 phi = clamp(math.atan2(bstar[1] - C0[1], abs(bstar[0] - x_start)), kp["phi_min"], kp["phi_max"])
                 self.adapted = True
-            self.d = (side * math.cos(phi), math.sin(phi))
-            self.p_max = kp["travel_max"]
-            self.is_dive = True
-        a = kp["v_dive"] / kp["t_push"]
-        self.a = a
-        half = 0.5 * kp["v_dive"] * kp["t_push"]
-        if self.p_max <= half:
-            tau_full = math.sqrt(2.0 * self.p_max / a) if self.p_max > 0 else 0.0
-        else:
-            tau_full = kp["t_push"] + (self.p_max - half) / kp["v_dive"]
-        self.t_full = self.t_m + tau_full
-        th = math.atan2(self.d[1], self.d[0]) if self.is_dive else math.pi / 2
-        if th < -math.pi / 2:
-            th += 2 * math.pi
-        self.th_final = th
-        self.th_flat = 0.0 if math.cos(th) >= 0 else math.pi
+        self.is_dive = self.mode == "dive"
+        self.t_takeoff = self.t_land = self.t_rest = None
+        self.vy0 = None
+        if self.mode == "dive":
+            self._setup_dive(phi)
+        elif self.mode == "step":
+            self._setup_step()
         # integrate arm (hand offset relative to shoulder)
         n = int(round((t1 - t0) / dt)) + 1
         self.n = n
         self.C, self.S, self.Hd, self.F = [], [], [], []
         o = kp["ready_hand"]
         L_eff = kp["L_arm"] - kp["r_hand"]
+        t_settle = (t_ball + kp["settle_s"]) if t_ball is not None else None
         for i in range(n):
             t = t0 + i * dt
-            C, u, f_push = self._com_axis(t)
+            C, th, F, f_arm = self._body(t)
+            u = (math.cos(th), math.sin(th))
             S = (C[0] + kp["L_torso"] * u[0], max(0.10, C[1] + kp["L_torso"] * u[1]))
-            F = (C[0] - kp["L_leg"] * u[0], max(0.0, C[1] - kp["L_leg"] * u[1]))
-            if self.is_dive and self.t_m < t < self.t_m + kp["t_push"]:
-                # push-off: the planted foot stays on the ground until take-off
-                F = lerp((x_start, 0.0), F, f_push)
             if t < t_p or bstar is None:
                 if self.is_dive and t > self.t_m:
-                    o = lerp(kp["ready_hand"], (L_eff * u[0], L_eff * u[1]), f_push)
+                    o = lerp(kp["ready_hand"], (L_eff * u[0], L_eff * u[1]), f_arm)
                 else:
                     o = kp["ready_hand"]
             else:
-                tx, ty = bstar[0] - S[0], bstar[1] - S[1]
+                if t_settle is not None and t >= t_settle:
+                    # after the ball has gone past: hands come back to the body (no arm left up in the air)
+                    if abs(u[0]) < 0.5:
+                        tx, ty = kp["ready_hand"]
+                    else:
+                        tx, ty = 0.6 * L_eff * u[0], 0.6 * L_eff * u[1]
+                else:
+                    tx, ty = bstar[0] - S[0], bstar[1] - S[1]
                 L = math.hypot(tx, ty)
                 if L > L_eff:
                     tx, ty = tx / L * L_eff, ty / L * L_eff
@@ -336,29 +395,121 @@ class KeeperTimeline:
             self.Hd.append(Hd)
             self.F.append(F)
 
-    def _com_axis(self, t):
+    # ------------------------------------------------------------------ set-up
+    def _setup_dive(self, phi):
         kp = self.kp
-        C0 = self.C0
-        if t <= self.t_m:
-            return C0, (0.0, 1.0), 0.0
-        tau = t - self.t_m
-        if tau <= kp["t_push"]:
-            p = 0.5 * self.a * tau * tau
+        g, V, T = kp["g"], kp["v_dive"], kp["t_push"]
+        y0 = self.C0[1]
+        s = self.s
+        y_to_max = kp["L_push"] * math.sin(kp["leg_to"])   # COM height with the push leg at its take-off angle
+        vy = V * math.tan(phi)
+        if vy > 0.0:
+            y_to = min(y0 + 0.5 * vy * T, y_to_max)
+            dl = y_to - y0
+            vy_cap = math.sqrt(max(0.0, 2.0 * g * (y0 + kp["jump_cap"] - y_to)))   # apex <= standing + jump cap
+            vy_ff = (3.0 * dl + 0.5 * g * T * T) / T                               # dip no faster than free fall
+            vy = min(vy, vy_cap, vy_ff)
+            y_to = min(y0 + 0.5 * vy * T, y_to_max)
         else:
-            p = 0.5 * kp["v_dive"] * kp["t_push"] + kp["v_dive"] * (tau - kp["t_push"])
-        p = min(p, self.p_max)
-        cx = C0[0] + p * self.d[0]
-        cy = min(C0[1] + p * self.d[1], C0[1] + kp["jump_cap"])
-        f_push = smoothstep(tau / kp["t_push"])
-        th = math.pi / 2 + (self.th_final - math.pi / 2) * f_push
-        if self.is_dive and t > self.t_full:
-            tf = t - self.t_full
-            cy_full = min(C0[1] + self.p_max * self.d[1], C0[1] + kp["jump_cap"])
-            cy = cy_full - 0.5 * kp["g"] * tf * tf
-            g_f = clamp(tf / 0.35, 0.0, 1.0)
-            th = self.th_final + (self.th_flat - self.th_final) * g_f
-        cy = max(cy, kp["y_lying"])
-        return (cx, cy), (math.cos(th), math.sin(th)), f_push
+            y_to = max(y0 + 0.5 * vy * T, kp["y_lying"] + 0.05)
+        self.phi = phi
+        self.vy0 = vy
+        self.y_to = y_to
+        self.x_to = self.x0 + s * 0.5 * V * T
+        self.t_takeoff = self.t_m + T
+        disc = vy * vy + 2.0 * g * (y_to - kp["y_lying"])
+        self.tf_land = (vy + math.sqrt(max(disc, 0.0))) / g
+        self.t_land = self.t_takeoff + self.tf_land
+        self.x_land = self.x_to + s * V * self.tf_land
+        self.apex_y = y_to + (vy * vy / (2.0 * g) if vy > 0 else 0.0)
+        self.v_slide = V * kp["land_keep"]
+        self.a_slide = kp["slide_mu"] * g
+        self.T_slide = self.v_slide / self.a_slide if self.a_slide > 1e-9 else 0.0
+        self.t_rest = self.t_land + self.T_slide
+        self.th_to = math.pi / 2 - s * kp["lean_to"]
+        self.th_flat = 0.0 if s > 0 else math.pi
+        foot_off = y_to / math.tan(kp["leg_to"])
+        self.F_p = (self.x_to - s * foot_off, 0.0)           # planted push foot (after the side-step)
+        self.leg_dir_to = math.atan2(y_to, s * foot_off)     # direction foot -> COM at take-off
+        self.leg_len_to = math.hypot(foot_off, y_to)
+
+    def _setup_step(self):
+        kp = self.kp
+        dx, dy = self.step
+        V = kp["v_dive"]
+        self.T_step = max(kp["step_min_s"], 1.875 * abs(dx) / V) if V > 0 else kp["step_min_s"]
+        y0 = self.C0[1]
+        self.dy_step = max(dy, kp["crouch_min"] - y0) if dy < 0 else 0.0
+        self.jump = None
+        if dy > 0:
+            g, T = kp["g"], kp["t_push"]
+            h = min(dy, kp["jump_cap"])
+            vj = min(math.sqrt(2.0 * g * h), 0.5 * g * T)   # countermovement no faster than free fall
+            self.jump = (vj, self.t_m + T, 2.0 * vj / g)
+            self.t_takeoff = self.t_m + T
+            self.t_land = self.t_m + T + 2.0 * vj / g
+            self.vy0 = vj
+        self.t_rest = max(self.t_m + self.T_step, self.t_land or 0.0)
+
+    # ------------------------------------------------------------------ body at time t
+    def _body(self, t):
+        """(COM, torso angle, feet point, arm-stretch fraction) at time t (analytic, no state)."""
+        kp = self.kp
+        x0, y0 = self.C0
+        up = math.pi / 2
+        if self.mode == "stand" or t <= self.t_m:
+            return (x0, y0), up, (x0, 0.0), 0.0
+        tau = t - self.t_m
+        g = kp["g"]
+        if self.mode == "step":
+            f = min_jerk(tau / self.T_step)
+            cx = x0 + self.step[0] * f
+            cy = y0 + self.dy_step * f
+            if self.jump:
+                vj, t_jto, tf = self.jump
+                T = kp["t_push"]
+                if t <= t_jto:
+                    cy += hermite_end_slope(0.0, 0.0, vj * T, tau / T)
+                elif t <= t_jto + tf:
+                    tt = t - t_jto
+                    cy += vj * tt - 0.5 * g * tt * tt
+            return (cx, cy), up, (cx, max(0.0, cy - kp["L_leg"])), 0.0
+        s, V, T = self.s, kp["v_dive"], kp["t_push"]
+        if tau <= T:   # 1) push-off: feet on the ground
+            r = tau / T
+            cx = x0 + s * 0.5 * (V / T) * tau * tau
+            cy = hermite_end_slope(y0, self.y_to, self.vy0 * T, r)
+            th = up + (self.th_to - up) * smoothstep(r)
+            rs = clamp(2.0 * r, 0.0, 1.0)
+            fx = x0 + (self.F_p[0] - x0) * smoothstep(rs)
+            fy = kp["step_lift"] * math.sin(math.pi * rs) if rs < 1.0 else 0.0   # planted after the side-step
+            return (cx, cy), th, (fx, fy), smoothstep(r)
+        tf = tau - T
+        if tf <= self.tf_land:   # 2) flight: projectile
+            cx = self.x_to + s * V * tf
+            cy = max(self.y_to + self.vy0 * tf - 0.5 * g * tf * tf, kp["y_lying"])
+            f = smoothstep(tf / self.tf_land) if self.tf_land > 1e-9 else 1.0
+            th = self.th_to + (self.th_flat - self.th_to) * f
+            psi = self.leg_dir_to + (self.th_flat - self.leg_dir_to) * f
+            L = self.leg_len_to + (kp["L_leg"] - self.leg_len_to) * f
+            return (cx, cy), th, (cx - L * math.cos(psi), max(0.0, cy - L * math.sin(psi))), 1.0
+        ts = min(t - self.t_land, self.T_slide)   # 3) landing + slide with friction, then rest
+        cx = self.x_land + s * (self.v_slide * ts - 0.5 * self.a_slide * ts * ts)
+        cy = kp["y_lying"]
+        th = self.th_flat
+        return (cx, cy), th, (cx - kp["L_leg"] * math.cos(th), max(0.0, cy - kp["L_leg"] * math.sin(th))), 1.0
+
+    def summary(self):
+        """Phase times for the log (keeper.ucus)."""
+        r4 = lambda x: (round(x, 4) if x is not None else None)  # noqa: E731
+        out = {"model": "balistik-v1", "mode": self.mode, "movement_t": r4(self.t_m) if self.mode != "stand" else None,
+               "takeoff_t": r4(self.t_takeoff), "landing_t": r4(self.t_land), "rest_t": r4(self.t_rest)}
+        if self.mode == "dive":
+            out.update({"takeoff_v_mps": [round(self.s * self.kp["v_dive"], 3), round(self.vy0, 3)],
+                        "takeoff_com_y": round(self.y_to, 4), "apex_com_y": round(self.apex_y, 4),
+                        "landing_com_x": round(self.x_land, 4),
+                        "rest_com_x": round(self.x_land + self.s * 0.5 * self.v_slide * self.T_slide, 4)})
+        return out
 
     def state(self, t):
         """Linear interpolation of the body points at time t."""
@@ -471,10 +622,11 @@ def simulate_kick(cfg, kp, aim, speed, plan, keeper_x_scene=0.0):
     ff_kp = fly_to_plane(ball, spot, v0, zk, phys["t_max_s"])
     flight_time = ff_goal[0] if ff_goal else None
     bstar = (ff_kp[1][0], ff_kp[1][1]) if ff_kp else None
+    t_ball = ff_kp[0] if ff_kp else None   # [tur3b 2026-10-22] hands settle only after the ball has gone past
 
     x_start = keeper_x_scene * (1.0 - kp["pos_pull"])
     t0k = phys["keeper_path_start_s"]
-    kt = KeeperTimeline(kp, plan, x_start, bstar, t0k, phys["t_max_s"], dt)
+    kt = KeeperTimeline(kp, plan, x_start, bstar, t0k, phys["t_max_s"], dt, t_ball=t_ball)
 
     p, v, rolling, t = spot, v0, False, 0.0
     traj = [[0.0, round(p[0], 4), round(p[1], 4), round(p[2], 4)]]
@@ -492,7 +644,8 @@ def simulate_kick(cfg, kp, aim, speed, plan, keeper_x_scene=0.0):
         tn = i * dt
         if caught_offset is not None:
             ks = kt.state(tn)
-            pn = (ks["H"][0] + caught_offset[0], ks["H"][1] + caught_offset[1], zk)
+            # [tur3b 2026-10-22] the held ball follows the hand but never goes below the ground
+            pn = (ks["H"][0] + caught_offset[0], max(r, ks["H"][1] + caught_offset[1]), zk)
             vn = (0.0, 0.0, 0.0)
         else:
             pn, vn, rolling = ball.step(p, v, rolling)
@@ -640,6 +793,16 @@ def _genitive(name):
 
 
 def explain_tr(name, res, plan, kp):
+    """[tur3b 2026-10-22] With option B the miss sentences say how far the kick strayed from the brain's aim."""
+    txt = _explain_core(name, res, plan, kp)
+    sc = res.get("scatter")
+    if sc and res["outcome"] in ("wide", "over", "post"):
+        d = math.hypot(sc["err"][0], sc["err"][1])
+        txt = f"Vuruş, sineğin nişanından {_dist_tr(d)} saptı. " + txt
+    return txt
+
+
+def _explain_core(name, res, plan, kp):
     out = res["outcome"]
     ft = res["flight_time"]
     ftxt = _num(ft) if ft is not None else "?"
@@ -708,6 +871,42 @@ def effective_seeds(cfg, seeds, beacon):
     return [int(sha256_hex(f"{s}|beacon|{beacon}".encode())[:15], 16) for s in seeds]
 
 
+# --------------------------------------------------------------------------- [tur3b 2026-10-22] shot scatter (option B)
+def scatter_rule(cfg):
+    """config.sut_sapmasi when it is switched ON (acik == true), else None. Default in config_sablon.json: OFF."""
+    sc = cfg.get("sut_sapmasi")
+    return sc if isinstance(sc, dict) and sc.get("acik") is True else None
+
+
+def draw_scatter(cfg, kseed: int, n: int, aim, speed):
+    """Execution error of kick n (MODEL.md section 8). Fixed, pre-registered rule; the brain's aim is the INTENDED aim.
+      u1 = U(kseed, 'kick<n>|sapma_u1'), u2 = U(kseed, 'kick<n>|sapma_u2')   (same U as every other draw; kseed is
+           the beacon-mixed keeper seed of kick n, so nobody could know it at commitment time)
+      z1 = sqrt(-2 ln u1) cos(2 pi u2), z2 = sqrt(-2 ln u1) sin(2 pi u2)     (Box-Muller: two independent N(0,1))
+      f  = clamp(aim_y / yukseklik_ref_m, 0, 1)
+      sigma_x = olcek * (ah_zemin + (ah_yuksek - ah_zemin) f) * speed^delta_h   (Hunter et al. 2018, side-foot)
+      sigma_y = olcek * (av_zemin + (av_yuksek - av_zemin) f) * speed^delta_v
+      actual aim = intended aim + (sigma_x z1, sigma_y z2)
+    Returns None when the rule is OFF."""
+    sc = scatter_rule(cfg)
+    if sc is None:
+        return None
+    u1 = uniform(kseed, f"kick{n}|sapma_u1")
+    u2 = uniform(kseed, f"kick{n}|sapma_u2")
+    rad = math.sqrt(-2.0 * math.log(u1))
+    z1 = rad * math.cos(2.0 * math.pi * u2)
+    z2 = rad * math.sin(2.0 * math.pi * u2)
+    ax, ay, v = float(aim["x"]), float(aim["y"]), float(speed)
+    f = clamp(ay / sc["yukseklik_ref_m"], 0.0, 1.0)
+    a_h = sc["alpha_h_zemin"] + (sc["alpha_h_yuksek"] - sc["alpha_h_zemin"]) * f
+    a_v = sc["alpha_v_zemin"] + (sc["alpha_v_yuksek"] - sc["alpha_v_zemin"]) * f
+    sx = sc["olcek"] * a_h * v ** sc["delta_h"]
+    sy = sc["olcek"] * a_v * v ** sc["delta_v"]
+    ex, ey = sx * z1, sy * z2
+    return {"u": (u1, u2), "z": (z1, z2), "sigma": (sx, sy), "err": (ex, ey),
+            "aim": {"x": ax + ex, "y": ay + ey}}
+
+
 def run(cfg, decisions, commit_sha=None, beacon=None):
     kp = keeper_params(cfg)
     kicks_in = decisions.get("kicks") or []
@@ -723,7 +922,11 @@ def run(cfg, decisions, commit_sha=None, beacon=None):
         n = int(k["n"])
         plan = draw_plan(cfg, seeds[n - 1], n)
         scene = k.get("scene") or {}
-        res = simulate_kick(cfg, kp, k["aim"], k["speed_mps"], plan, float(scene.get("keeper_x", 0.0)))
+        # [tur3b 2026-10-22] option B: the brain's aim is the intended aim; the foot adds a seeded execution error
+        sc = draw_scatter(cfg, seeds[n - 1], n, k["aim"], k["speed_mps"])
+        aim_kick = sc["aim"] if sc else k["aim"]
+        res = simulate_kick(cfg, kp, aim_kick, k["speed_mps"], plan, float(scene.get("keeper_x", 0.0)))
+        res["scatter"] = sc
         kt = res["keeper"]
         if res["outcome"] == "save":
             margin = res["contact"]["depth_m"]
@@ -753,6 +956,13 @@ def run(cfg, decisions, commit_sha=None, beacon=None):
                 "aim_solved": res["solved"],
                 "launch_velocity": [round(x, 4) for x in res["v0"]],
                 "speed_at_goal_line_mps": round(res["speed_at_goal"], 2) if res["speed_at_goal"] else None,
+                # [tur3b 2026-10-22] şut sapması (seçenek B); kapalıysa null ve aim_effective = aim
+                "sapma": ({"kural": cfg["sut_sapmasi"]["surum"],
+                           "u": [round(x, 9) for x in sc["u"]], "z": [round(x, 6) for x in sc["z"]],
+                           "sigma_m": [round(x, 4) for x in sc["sigma"]], "hata_m": [round(x, 4) for x in sc["err"]],
+                           "nisan_niyet": {"x": k["aim"]["x"], "y": k["aim"]["y"]},
+                           "nisan_gercek": {"x": round(sc["aim"]["x"], 4), "y": round(sc["aim"]["y"], 4)}}
+                          if sc else None),
             },
             "keeper": {
                 "dive_dir": plan["dive_dir"],
@@ -766,6 +976,7 @@ def run(cfg, decisions, commit_sha=None, beacon=None):
                 "dive_height_adapted": kt.adapted,
                 "seed_uniforms": {key: round(val, 6) for key, val in plan["u"].items()},
                 "plane_z": cfg["physics"]["keeper_plane_z_m"],
+                "ucus": kt.summary(),  # [tur3b 2026-10-22] balistik dalışın evreleri (kalkış, iniş, duruş)
                 "path_fields": ["t", "com_x", "com_y", "shoulder_x", "shoulder_y", "hand_x", "hand_y", "feet_x", "feet_y"],
                 "path": res["path"],
             },
@@ -794,6 +1005,7 @@ def run(cfg, decisions, commit_sha=None, beacon=None):
         "UYARI": ("PROVA / STUB: sahte (elle yazılmış) karar dosyasıyla üretildi, gerçek sonuç DEĞİL." if stub else
                   ("PROVA: taahhütten önce yapılan deneme koşusu, yayınlanacak sonuç DEĞİL." if prova else None)),
         "keeper_seeds": seeds,
+        "sut_sapmasi_acik": scatter_rule(cfg) is not None,  # [tur3b 2026-10-22]
         "beacon": ({"rule": cfg["beacon_rule"], "value": beacon} if cfg.get("beacon_rule") else None),
         "engine": {"name": ENGINE_NAME, "version": ENGINE_VERSION, "sha256": eng},
         "config_sha256": cfg_sha,

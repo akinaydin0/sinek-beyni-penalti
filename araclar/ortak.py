@@ -22,18 +22,22 @@ VERI = os.path.join(KOK, "veri")
 VENV = os.path.join(BEYIN, ".venv")
 WINDOWS = os.name == "nt"
 
-# prova5: _tur3/YENI_AKIS.md "PROVA5" bölümündeki değerler. Provada açık gönderi olmadığı için --kod ve
-# --yayin-utc dış kaynaktan değil, belgeden gelir (finalde doğrulayan bunları KENDİSİ dış kaynaktan okur).
-PROVA5 = {
-    "taahhut": os.path.join(VERI, "prova5", "taahhut_prova5.json"),
-    "config": os.path.join(VERI, "prova5", "config_prova5.json"),
-    "log": os.path.join(VERI, "prova5", "prova5_penalty_log.json"),
-    "karar": os.path.join(VERI, "prova5", "prova5_beyin_kararlari.json"),
-    "beacon": os.path.join(VERI, "prova5", "beacon_prova5.json"),
-    "kod": "71a3c84e932d435d52b14731eb717f82f880f52404412d4c94e82315aaec5a31",
-    "duyuru_sha": "572bbd8a487ac49c87020e760b695e9afc930517ce92e1063c9f9e39bb0fe775",
-    "yayin_utc": "2026-10-22T19:13:20Z",
-    "mac_cikti": os.path.join(VERI, "prova5", "prova5_verify_cikti.txt"),
+# [tur4 2026-10-23] Depodaki doğrulanan tatbikat artık PROVA7B (tur3b kodu, seçenek B: şut sapması açık; bugünkü
+# oyun/ ile birebir aynı kod). Değerler _tur3/DEGISIKLIK.md "PROVA7B" satırından. Provada açık gönderi olmadığı için
+# --kod ve --yayin-utc dış kaynaktan değil, belgeden gelir (finalde doğrulayan bunları KENDİSİ dış kaynaktan okur).
+# Eski PROVA5 dosyaları veri/prova5/ içinde duruyor; eski motorla yapıldığı için bugünkü verify.py ile bilerek
+# DOĞRULANAMADI alır ("her taahhüt yayınlanır" kuralı gereği depoda).
+PROVA = {
+    "ad": "PROVA7B",
+    "taahhut": os.path.join(VERI, "prova7B", "taahhut_prova7B.json"),
+    "config": os.path.join(VERI, "prova7B", "config_prova7B.json"),
+    "log": os.path.join(VERI, "prova7B", "prova7B_penalty_log.json"),
+    "karar": os.path.join(VERI, "prova7B", "prova7B_beyin_kararlari.json"),
+    "beacon": os.path.join(VERI, "prova7B", "beacon_prova7B.json"),
+    "kod": "95d11f1736b19ac9e78c77b09f79f9d5f0122b3702dd4bf2e73fd2b182e210ed",
+    "duyuru_sha": "ab65e95be6b8ff29b9713e8481f4c8a93a1f4af5dcf2e00902bdfce687b51cf2",
+    "yayin_utc": "2026-10-22T20:44:44Z",
+    "mac_cikti": os.path.join(VERI, "prova7B", "prova7B_verify_cikti.txt"),
 }
 READOUT_DONDURMA = "e0ff656deddd74430262a8b5b272ca9842ae75a2f9b8a806562cc4e42cdcaa27"
 
@@ -75,11 +79,49 @@ UTF8_CMD_ICERIK = ("@echo off\r\n"
                    "\"%~dp0Scripts\\python.exe\" -X utf8 %*\r\n")
 
 
+# [tur4 2026-10-23] macOS / Linux eşi. Aynı sorun 8-bit yerel ayarlı (ör. tr_TR.ISO-8859-9) Linux'ta da var: CI'da
+# ölçüldü, kalkansız "'utf-8' codec can't decode byte 0xfe" -> DOĞRULANAMADI. Bu sh betiği venv'in kendi python'unu
+# '-X utf8' ile başlatır (yol betiğin kendi yerinden bulunur, boşluk ve Türkçe karakter sorun olmaz). UTF-8 yerel
+# ayarda (macOS ve bugünkü Linux'ların hepsi) zaten aynı kodlamadır; hiçbir şeyi değiştirmez.
+UTF8_SH = os.path.join(VENV, "bin", "python_utf8")
+UTF8_SH_ICERIK = ("#!/bin/sh\n"
+                  "# [tur4 2026-10-23] Runs the brain venv Python in UTF-8 mode (-X utf8). Text encoding only.\n"
+                  "exec \"$(dirname \"$0\")/python\" -X utf8 \"$@\"\n")
+KALKAN_KONTROL = "import sys,json;print(json.dumps([sys.flags.utf8_mode, sys.prefix]))"
+
+
+def utf8_kalkani():
+    """İşletim sistemine göre UTF-8 kalkanının yolu (Windows .cmd, ötekiler sh)."""
+    return UTF8_CMD if WINDOWS else UTF8_SH
+
+
+def utf8_kalkan_kur():
+    """[tur4 2026-10-23] macOS/Linux: beyin/.venv/bin/python_utf8 yazar ve dener. (yol | None, açıklama) döner.
+    Windows'ta .cmd'yi kur.py yazar (orada ek kontroller var); burada yalnız varlığı bildirilir."""
+    if WINDOWS:
+        return (UTF8_CMD if os.path.isfile(UTF8_CMD) else None), "Windows: python_utf8.cmd (kur.py yazar)"
+    if not os.path.exists(venv_python()):
+        return None, "beyin/.venv yok"
+    try:
+        with open(UTF8_SH, "w", encoding="ascii", newline="\n") as f:
+            f.write(UTF8_SH_ICERIK)
+        os.chmod(UTF8_SH, 0o755)
+        p = subprocess.run([UTF8_SH, "-I", "-B", "-c", KALKAN_KONTROL], capture_output=True, timeout=60)
+        utf8, prefix = json.loads(p.stdout.decode("utf-8").strip().splitlines()[-1])
+    except (OSError, ValueError, IndexError, subprocess.SubprocessError) as e:
+        return None, f"python_utf8 çalışmadı: {e}"
+    if p.returncode != 0 or utf8 != 1 or os.path.realpath(prefix) != os.path.realpath(VENV):
+        return None, f"python_utf8 beklenen ortamı vermedi (utf8_mode {utf8}, prefix {prefix})"
+    return UTF8_SH, "tamam (utf8_mode 1, prefix beyin/.venv)"
+
+
 def dogrulama_beyin_python():
-    """dogrula.py'nin verify.py'ye verdiği beyin Python'u (Windows'ta UTF-8 .cmd, diğerlerinde venv python)."""
-    if WINDOWS and os.path.isfile(UTF8_CMD):
-        return UTF8_CMD
-    return venv_python()
+    """dogrula.py'nin verify.py'ye verdiği beyin Python'u: UTF-8 kalkanı (Windows .cmd, macOS/Linux sh), yoksa
+    düz venv python. [tur4 2026-10-23] macOS/Linux'ta da kalkan: kur.py yazmadıysa burada yazılır ve denenir."""
+    if WINDOWS:
+        return UTF8_CMD if os.path.isfile(UTF8_CMD) else venv_python()
+    yol, _ = utf8_kalkan_kur()
+    return yol or venv_python()
 
 
 def sha256_dosya(path):
