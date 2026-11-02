@@ -4,10 +4,10 @@
 
 [English version below](#english)
 
-> **Durum (23 Ekim 2026):** hazırlık. Final koşu **yapılmadı**. Bu depoda doğrulanan koşu **PROVA9B**, yani bir
-> tatbikat; sonucu (SİNEK 5 – 0 ÇAKIR) yayımlanacak sonuç **değil**. Final günü config, taahhüt ve sonuç dosyaları buraya
-> eklenecek. Daha önceki provalar da burada (her taahhüt yayınlanır); eski kodla yapıldıkları için bugünkü kodla
-> bilerek DOĞRULANAMADI alırlar (aşağıda Klasörler).
+> **Durum (2 Kasım 2026):** final koşu 23 Ekim 2026'da yapıldı (run_id `FINAL-a8f0cfde20`, drand turu 33311502).
+> Dosyaları bu depoda (aşağıda Klasörler); doğrulama komutu "Final koşuyu doğrula" başlığında. **PROVA9B** ise bir
+> tatbikat; skoru (SİNEK 5 – 0 ÇAKIR) final sonuç **değil**. Daha önceki provalar da burada (her taahhüt yayınlanır);
+> eski kodla yapıldıkları için bugünkü kodla bilerek DOĞRULANAMADI alırlar.
 
 ## Bu ne?
 
@@ -38,8 +38,9 @@ okuyup kandırıyor" demek yanlış olur. Ayrıntı: `beyin/README.md`.
   taahhüt anında kimse bilemez. Beyin kaleciyi tam orada görür, motor tam oraya koyar.
 - **Beyin tohumu da N'den çıkar.**
 - **drand quicknet** (League of Entropy): zincir `52db9ba7…`, imza BLS12-381; `oyun/bls12381.py` imzayı kendisi kontrol eder.
-- Kurallar ve bütün kod **bir gün önce** "duyuru özeti" ile duyurulur; taahhüt, N yayınlanmadan **en az 120 dakika önce**
-  herkese açık yerde (bu depo + sabitlenmiş gönderi) durur.
+- Kuralların ve bütün kodun tek özeti ("duyuru özeti") ile taahhüt, N yayınlanmadan **en az 120 dakika önce** herkese
+  açık yerde durur. Bu koşuda o yer, Bölüm 1 reel'inin altındaki Instagram yorumu (N'den yaklaşık 174 dakika önce). Bir
+  gün önce ayrı bir duyuru yapılmadı; özet taahhütle aynı yorumda açıklandı. Depo koşudan önce gizliydi, sonra açıldı.
 - **Atılan her taahhüt sonuçlanır ve yayınlanır** (`veri/taahhut_gecmisi.jsonl`).
 
 Tam akış ve formüller: `oyun/README.md`, `oyun/MODEL.md`.
@@ -49,8 +50,9 @@ Tam akış ve formüller: `oyun/README.md`, `oyun/MODEL.md`.
 Üç şey birlikte "sonuç seçilmedi" demektir. Biri eksikse "DOĞRULANDI" ekranı tek başına bir şey kanıtlamaz.
 
 1. **Taahhüt önceden herkese açıktı.** Bunu program kendisi bilemez. Taahhüdün tur N'den önce açıkta olduğunu
-   **sen** dış bir kaynaktan okursun (sabitlenmiş yorumun / story'nin saati, OpenTimestamps kaydı) ve
-   `--yayin-utc` olarak verirsin.
+   **sen** dış bir kaynaktan okursun (Bölüm 1 reel'inin altındaki yorumun Instagram'daki saati:
+   <https://www.instagram.com/reel/Dewx1Urt9bb/>) ve `--yayin-utc` olarak verirsin. **Sınır:** bu koşuda zamanın kanıtı
+   yalnız bu Instagram yorumunun saati. Koşudan önce açık bir depo ya da bağımsız bir zaman damgası yoktu.
 2. **drand imzası geçerli.** Sahte bir rastgele değer, internet taklit edilse bile BLS kontrolünden geçmez.
 3. **Kendi makinende yeniden koşu.** `verify.py` sinek beynini ve motoru, taahhüt + beacon'dan hesapladığı tohum ve
    kaleci yeriyle yeniden koşturur ve her sayıyı, beynin bütün spike'larının özeti dahil, birebir karşılaştırır.
@@ -136,20 +138,38 @@ verify.py sonucu: PROVA DOĞRULANDI (final sonuç DEĞİL) (çıkış 3)
   (ör. Türkçe cp1254) beyin ya da JavaScript kontrolünün çıktısı yanlış çözülür ve sonuç DOĞRULANAMADI olur.
 - Beyin koşturulamazsa `dogrula.py` sebebi düz dille yazar (`NEDEN:` satırı).
 
-### Final günü: bir taahhüdü doğrula
+### Final koşuyu doğrula
 
-`--kod`, `--duyuru-sha` ve `--yayin-utc` değerlerini **kendin** dış kaynaktan oku: TAM SHA-256 sabitlenmiş
-gönderiden, duyuru özeti duyurudan, zaman sabitlenmiş yorumun / story'nin saatinden ya da OpenTimestamps kaydından.
+`--kod`, `--duyuru-sha` ve `--yayin-utc` değerlerini **kendin** dış kaynaktan oku. Üçü de aynı yerde: Bölüm 1 reel'inin
+altındaki yorum (<https://www.instagram.com/reel/Dewx1Urt9bb/>). TAM SHA-256 yorumdaki "Taahhüt (SHA-256)" satırı, duyuru
+özeti "Kurallar + kod özeti" satırı, zaman yorumun Instagram'daki saati (UTC olarak yaz, ör. `2026-10-23T12:04:00Z`).
 Git commit tarihi kanıt değildir: commit'i yapan onu istediği gibi yazabilir. Dosyalardan okuma; operatörün elinde
 olan dosyalar kanıt değildir.
 
+macOS / Linux:
 ```bash
 python3.12 -I araclar/dogrula.py --taahhut veri/taahhut.json --config oyun/config_final.json \
     --log veri/penalty_log.json --karar veri/beyin_kararlari.json --beacon-dosya veri/beacon.json \
-    --kod <TAM_64_KARAKTER_SHA256> --duyuru-sha <DUYURU_OZETI> --yayin-utc <2026-10-23T12:04:00Z>
+    --kod <TAM_64_KARAKTER_SHA256> --duyuru-sha <DUYURU_OZETI> --yayin-utc <ILK_GORULME_UTC>
 ```
-Windows'ta aynı komut: `py -3.12 -I araclar\dogrula.py --taahhut veri\taahhut.json ...` (satır sonundaki `\` yerine
-PowerShell'de tek satır yaz ya da satır sonuna `` ` `` koy). Beklenen son satır: `SONUÇ: DOĞRULANDI` (çıkış 0).
+Windows (PowerShell):
+```powershell
+py -3.12 -I araclar\dogrula.py --taahhut veri\taahhut.json --config oyun\config_final.json `
+    --log veri\penalty_log.json --karar veri\beyin_kararlari.json --beacon-dosya veri\beacon.json `
+    --kod <TAM_64_KARAKTER_SHA256> --duyuru-sha <DUYURU_OZETI> --yayin-utc <ILK_GORULME_UTC>
+```
+Beklenen son satır: `SONUÇ: DOĞRULANDI` (çıkış 0) ve "5 şutun 5'inde spike'lar Mac referansıyla BİT BİT AYNI".
+Mac'in kendi çıktısı `veri/final_verify_cikti.txt` içinde; kanıt değil, karşılaştırma için.
+
+Ayrı yazılmış JavaScript kontrolü (yalnız Node.js gerekir; beklenen `BAĞIMSIZ KONTROL: TUTUYOR`; `dogrula.py` bunu kendi
+içinde de çalıştırır):
+```bash
+node oyun/bagimsiz/kontrol.mjs veri/beacon.json veri/taahhut.json veri/penalty_log.json veri/beyin_kararlari.json
+```
+Windows'ta aynı komut ters bölüyle: `node oyun\bagimsiz\kontrol.mjs veri\beacon.json veri\taahhut.json veri\penalty_log.json veri\beyin_kararlari.json`.
+
+`oyun/verify.py` dondurulmuş olduğu için çıktısında eski plandan kalan sözler geçer ("story/sabitlenmiş gönderideki
+TAM SHA-256", "önceden duyurulan"). Bu koşuda ikisinin de kaynağı Bölüm 1 reel'inin altındaki yorumdur.
 
 `araclar/dogrula.py`, `oyun/verify.py`'yi **değiştirmeden** çağırır. İstersen doğrudan da çalıştırabilirsin:
 `python3.12 -I -X utf8 oyun/verify.py --help`.
@@ -217,6 +237,9 @@ adlı boşluklu, Türkçe karakterli klasörde çalıştı):
 | `oyun/` | Motor, taahhüt (`commit.py`), drand (`beacon.py`), saf Python BLS (`bls12381.py`), doğrulama (`verify.py`, `beyin_yeniden.py`), testler, bağımsız JS kontrolü (`bagimsiz/kontrol.mjs`). 11 dosya taahhüde girer. |
 | `beyin/` | Sinek beyni: `kick.py`, `beyin_model.py`, `ortam.py`, `esleme.py` (DONMUŞ), `dondur.py`, `ids.json`, `DONDURMA.json` (taahhüde girer) + kalibrasyon ve kontrol betikleri. `indirilen/` boş; `veri_indir.py` doldurur. |
 | `araclar/` | Kurulum ve çalıştırma kolaylığı (taahhüde girmez): `kur.py`, `veri_indir.py`, `testler.py`, `dogrula.py`; tanı aracı `beyin_hedef_olcum.py`; CI özeti `ci_ozet.py`. |
+| `oyun/config_final.json`, `veri/taahhut.json`, `veri/beacon.json`, `veri/beyin_kararlari.json`, `veri/penalty_log.json` | Final koşunun dosyaları (23 Ekim 2026, run_id `FINAL-a8f0cfde20`, drand turu 33311502). |
+| `veri/beyin_raster/beyin_kararlari/` | Final koşunun spike raster'ları (npz). |
+| `veri/final_verify_cikti.txt` | Final koşunun Akın'ın Mac'indeki `verify.py` çıktısı (kanıt değil; kanıt senin makinendeki sonuç). |
 | `veri/prova9B/` | PROVA9B (bugünkü dondurulmuş kod: motor 1.1.1, seçenek B, ölçek 0,432; SİNEK 5 – 0 ÇAKIR): config, taahhüt, beacon, beyin kararları, penaltı log'u ve Mac'teki verify çıktısı. `dogrula.py` varsayılan olarak bunu doğrular. |
 | `veri/beyin_raster/prova9B_beyin_kararlari/` | PROVA9B'nin spike raster'ları (npz). Yolu beyin karar dosyası belirler; o dosya taahhüt zincirine bağlı olduğu için değiştirilemez. |
 | `veri/ara_prova8B/` | PROVA8B (motor 1.1.1, seçenek B, eski ölçek 0,332; 5–0). Sonra sapma ölçeği yeniden kalibre edildi; bugünkü kodla bilerek DOĞRULANAMADI alır. |
@@ -245,9 +268,10 @@ ve resmi FC 27 değerleri kullanıldı. Bu proje EA, oyuncu ya da kulübüyle ba
 **A fruit-fly brain model takes 5 penalties. I did not pick the result; this repository lets you check that on
 your own computer.**
 
-> **Status (23 Oct 2026):** preparation. The final run has **not** happened. The verified run here is **PROVA9B**, a
-> dry run; its score (FLY 5 – 0 ÇAKIR) is **not** the published result. Earlier dry runs are kept too (every
-> commitment is published); they used older code, so today's `verify.py` rejects them on purpose.
+> **Status (2 Nov 2026):** the final run took place on 23 Oct 2026 (run_id `FINAL-a8f0cfde20`, drand round 33311502).
+> Its files are in this repository; the command is under "Final koşuyu doğrula" above and in **Commands** below.
+> **PROVA9B** is a dry run; its score (FLY 5 – 0 ÇAKIR) is **not** the final result. Earlier dry runs are kept too
+> (every commitment is published); they used older code, so today's `verify.py` rejects them on purpose.
 
 **What it is.** The Shiu et al. (Nature 2024) whole-brain leaky integrate-and-fire model of *Drosophila* (FlyWire v783
 connectome, 138,639 neurons, 15.1 M connections, Brian2) sees where the goalkeeper stands (as a left/right bias on the
@@ -263,13 +287,16 @@ gravity, landing, slide; no hovering). Shot scatter ON (option B): the brain's a
 pre-registered execution error (Hunter et al. 2018 form, scale 0.432 so that 4.78% of kicks miss the target, as in match penalties), drawn from round N.
 Before each kick the keeper shifts 0.30–0.50 m to a
 random side; the shifts and the brain seed come from drand quicknet round N, published **after** the commitment
-(BLS12-381 signature checked by our own pure-Python `oyun/bls12381.py`). Rules + all code are announced a day before
-(announcement digest); the commitment must be public at least 120 minutes before round N; every commitment made is
-resolved and published.
+(BLS12-381 signature checked by our own pure-Python `oyun/bls12381.py`). The announcement digest (rules + all code) and
+the commitment must be public at least 120 minutes before round N. For this run both went up in one Instagram comment
+under the Part 1 reel, about 174 minutes before the round. There was no separate announcement a day earlier, and the
+repository was private until after the run. Every commitment made is resolved and published.
 
 **What verification proves.** (1) that the commitment was public before round N: *you* read that time from an
-external source (time of the pinned comment / story, OpenTimestamps record; a git commit date is NOT evidence, the
-committer sets it) and pass it as `--yayin-utc`; (2) that the drand
+external source (the timestamp of the Instagram comment under the Part 1 reel,
+<https://www.instagram.com/reel/Dewx1Urt9bb/>; a git commit date is NOT evidence, the committer sets it) and pass it as
+`--yayin-utc`. Limit: for this run that comment's timestamp is the only proof of time; there was no public repository
+and no independent timestamp before the run; (2) that the drand
 value is genuine (BLS); (3) that the brain and engine, re-run **on your machine** with the seed and keeper positions
 derived from commitment + beacon, reproduce every number, including a SHA-256 over all brain spikes. A screenshot of
 "DOĞRULANDI" from the operator's machine proves nothing. Caveat: the rules were chosen after the fly was measured
@@ -288,8 +315,12 @@ check SHA-256 against `beyin/ids.json`, (3) check the 21 committed files' SHA-25
 the 34 tests, (4) run `oyun/verify.py` unchanged, with the brain re-run, on PROVA9B. Expected:
 `PROVA DOĞRULANDI (final sonuç DEĞİL)`, exit code 3, and "5 of 5 kicks bit-identical to the Mac reference".
 Non-Mac machines show one extra warning ("brain environment differs"), caused only by the platform string.
-For the final, pass `--taahhut --config --log --karar --beacon-dosya` plus `--kod`, `--duyuru-sha`, `--yayin-utc`
-read from external sources; expected `SONUÇ: DOĞRULANDI`, exit 0. Run `verify.py` through `araclar/dogrula.py`: it
+For the final, run the command under "Final koşuyu doğrula" above: `--taahhut veri/taahhut.json --config
+oyun/config_final.json --log veri/penalty_log.json --karar veri/beyin_kararlari.json --beacon-dosya veri/beacon.json`
+plus `--kod`, `--duyuru-sha`, `--yayin-utc`, all three read by you from the comment under the Part 1 reel (the "Taahhüt
+(SHA-256)" line, the "Kurallar + kod özeti" line and the comment's timestamp); expected `SONUÇ: DOĞRULANDI`, exit 0.
+`oyun/verify.py` is frozen, so its output still says "story/sabitlenmiş gönderi" and "önceden duyurulan"; for this run
+the source of both is that comment. Run `verify.py` through `araclar/dogrula.py`: it
 passes a UTF-8 launcher for the brain subprocess on every OS. If you run `oyun/verify.py` directly, use `-X utf8` and
 `--beyin-python beyin/.venv/bin/python_utf8` (Windows: `beyin\.venv\python_utf8.cmd`), otherwise an 8-bit Windows
 code page garbles the brain or JS output and the result is DOĞRULANAMADI.

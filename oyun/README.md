@@ -16,7 +16,7 @@ Formüller ve kaynaklar: `MODEL.md`. Kaynak listesi: `LISANSLAR.md`.
 | `penalty_model.py` | Motor: top (yerçekimi + hava sürtünmesi, RK4 600 Hz → 60 fps), direkler, kaleci, Türkçe açıklama cümlesi |
 | `config_prova.json` | ESKİ PROVA ayarı (Hunter kapalı, merkeze çekilme 0,005): eski prova dosyaları bununla doğrulanır |
 | `config_sablon.json` | [tur3 2026-10-22] YENİ şablon: Hunter açık, merkeze çekilme 0, kayma kuralı (`keeper_shift`), drand beacon bloğu, skor kuralı |
-| `commit.py` | Taahhüt: TAM SHA-256 (story/gönderi/depo); `kurallar` = bir gün önceki DUYURU ÖZETİ (kurallar + kod); `yeni` config + gelecekteki drand turu + kod özetleri; `hesapla` taahhüt [tur3] |
+| `commit.py` | Taahhüt: TAM SHA-256; `kurallar` = DUYURU ÖZETİ (kurallar + kod); `yeni` config + gelecekteki drand turu + kod özetleri; `hesapla` taahhüt [tur3] |
 | `beacon.py` | [tur3] drand quicknet (sabit zincir bilgisi): tur saati, relay'lerden çekme, BLS + SHA-256 kontrolü, 5 kayma, beacon'dan beyin tohumu |
 | `verify.py` | [tur3] Her şeyi baştan kontrol eder: taahhüt, kurallar, kod özetleri, BLS, relay'ler, dış zaman, beyin YENİDEN KOŞUSU, motor; ilk satır MOD; sonuç etiketleri `_tur3/YENI_AKIS.md`'de |
 | `bls12381.py` | [tur3] Bağımlılıksız saf Python BLS12-381 imza doğrulayıcı (RFC 9380 hash_to_curve, eşleştirme); drand quicknet için |
@@ -41,11 +41,12 @@ python3.12 -I kalibrasyon.py
 - `../veri/taahhut_prova.json`: prova taahhüdü (story'de PAYLAŞILMAZ)
 
 ## Final akışı (tur3b, 22 Ekim; sıra önemli)
-Ayrıntılı, düz Türkçe anlatım, takvim ve tam komutlar: `../_tur3/YENI_AKIS.md`.
+Aşağısı plan. [tur5 2026-11-02] Gerçekte: G-1 adımı yapılmadı (duyuru özeti taahhütle aynı yorumda açıklandı), taahhüt
+drand turundan önce yalnız Bölüm 1 reel'inin altındaki Instagram yorumunda açıktı, depo koşudan sonra açıldı.
 ```bash
 python3.12 -I commit.py kurallar --yaz ../veri/duyuru.json                       # G-1) DUYURU ÖZETİ: herkese açık
 python3.12 -I commit.py yeni --cikti config_final.json                           # 1) config, drand turu N (180 dk sonra)
-python3.12 -I commit.py hesapla --config config_final.json --yaz ../veri/taahhut.json   # 2) TAM SHA-256 -> HEMEN açık depo + gönderi
+python3.12 -I commit.py hesapla --config config_final.json --yaz ../veri/taahhut.json   # 2) TAM SHA-256 -> HEMEN herkese açık yere
 python3.12 -I beacon.py getir --config config_final.json --yaz ../veri/beacon.json --bekle             # 3) N yayınlanınca
 python3.12 -I beacon.py kaymalar --config config_final.json --taahhut ../veri/taahhut.json --beacon-dosya ../veri/beacon.json  # 4)
 # 5) beyin: 4. adımın bastığı kick.py komutu (beyin/ klasöründen, --final; tohum beacon'dan)
@@ -89,6 +90,7 @@ top + DİREK etiketi). Çelme kuralı aynı. Ayrıntı: MODEL.md bölüm 1 ve 5;
 - Kurtarılan topun sekişi ve file basit; yalnızca görüntü içindir, sonucu etkilemez.
 - Sahnede `keeper_x` 0 ise Positioning hiçbir şeyi değiştirmez (tur3'te hiç değiştirmez). Kicking hiçbir şeyi değiştirmez.
 - Seed'lerin önceden "beğenilerek" seçilmediğini taahhüt tek başına kanıtlamaz. [tur3 2026-10-22] Tur3b akışında:
-  drand turu N taahhütten sonra yayınlanır; kaleci seed'leri, kaymalar ve beyin tohumu ondan çıkar; kurallar ve kod bir
-  gün önce duyurulur. Kalan şart: taahhüdün N'den önce herkese açık olduğunu doğrulayan kişinin dış bir kaynaktan
-  (sabitlenmiş gönderi, GitHub, OpenTimestamps) kendisinin kontrol etmesi; program bunu yapamaz.
+  drand turu N taahhütten sonra yayınlanır; kaleci seed'leri, kaymalar ve beyin tohumu ondan çıkar; kuralların ve kodun
+  özeti taahhütle birlikte açıklanır. Kalan şart: taahhüdün N'den önce herkese açık olduğunu doğrulayan kişinin dış bir
+  kaynaktan ([tur5 2026-11-02] bu koşuda Bölüm 1 reel'inin altındaki Instagram yorumunun saati) kendisinin kontrol
+  etmesi; program bunu yapamaz.

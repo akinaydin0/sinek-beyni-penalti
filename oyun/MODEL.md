@@ -235,6 +235,6 @@ yürütme hatası ekler. A (kapalı) bugünkü davranıştır.
   m/s); bu kuralla tipik bir sinek şutunda σx ≈ 0,32 m, σy ≈ 0,48 m (26,8 m/s, 1,45 m; [tur4] 0,432 ile). Olasılıklar: `../_tur3/DEGISIKLIK.md`.
 - **Sonradan ayar yok:** olcek ve bütün α/δ `commit.py`'de (`TUR3B_KURALLARI`) ve `verify.py`'de (KAT) elle yazılı; şablon
   bunlardan saparsa `commit.py` üretmez, `verify.py` HATA verir. A mı B mi, şablondaki `sut_sapmasi.acik` ile seçilir
-  ve bir gün önceki duyuru özetine girer.
+  ve duyuru özetine girer.
 - Modelde olmayanlar: Hunter'ın bulduğu hızla kayan ortalama (sistematik kayma) ve sağ/sol ayak eğik dağılımı;
   hız hatası (yalnız yön sapıyor); baskı (seri penaltıda kaçan %9,92, Vollmer 2024; sinekte baskı yok, maç içi oran alındı).

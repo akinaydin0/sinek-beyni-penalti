@@ -1,24 +1,25 @@
 # [tur3b 2026-10-22] Üç işletim sisteminde: kur -> veri indir + SHA-256 -> testler -> provayı beyin yeniden koşusuyla
-# [tur4 2026-10-23] Prova artık PROVA7B (tur3b kodu, seçenek B). Olumsuz denemeler sebebini de kontrol eder.
+# [tur4 2026-10-23] Prova artık PROVA9B (tur3b kodu, seçenek B). Olumsuz denemeler sebebini de kontrol eder.
 # doğrula -> spike'lar Mac referansıyla bit bit aynı mı? Ayrıca tanı: Brian2 numpy hedefiyle aynı mı, süreler.
 name: dogrulama
 
 on:
   push:
   workflow_dispatch:
-    # [tur4 2026-10-23] Final günü: final dosyaları depoya eklenince elle tetiklenir (gh workflow run dogrulama
+    # [tur4 2026-10-23] Final dosyaları depoda: elle tetiklenir (gh workflow run dogrulama
     # -f kod=... -f duyuru_sha=... -f yayin_utc=...). Boş bırakılırsa yalnız prova doğrulanır.
+    # [tur5 2026-11-02] Üç değerin kaynağı Bölüm 1 reel'inin altındaki Instagram yorumu.
     inputs:
       kod:
-        description: "FINAL: sabitlenmiş yorumdaki TAM 64 karakter taahhüt SHA-256"
+        description: "FINAL: Bölüm 1 reel'inin altındaki yorumdaki TAM 64 karakter taahhüt SHA-256"
         required: false
         default: ""
       duyuru_sha:
-        description: "FINAL: duyuru özeti"
+        description: "FINAL: aynı yorumdaki duyuru özeti (Kurallar + kod özeti)"
         required: false
         default: ""
       yayin_utc:
-        description: "FINAL: taahhüdün açıkta ilk görüldüğü an (UTC, ör. 2026-10-23T10:05:00Z)"
+        description: "FINAL: yorumun saati, taahhüdün açıkta ilk görüldüğü an (UTC, ör. 2026-10-23T03:50:00Z)"
         required: false
         default: ""
 
@@ -80,24 +81,45 @@ jobs:
       - name: "3) testler"
         run: python -I araclar/testler.py
 
-      - name: "4) doğrula: PROVA7B, beyin yeniden koşusu dahil"
+      - name: "4) doğrula: PROVA9B, beyin yeniden koşusu dahil"
         id: dogrula
         continue-on-error: true
         run: python -I araclar/dogrula.py --beklenen prova --cikti ci_cikti/verify_${{ matrix.ad }}.txt --json ci_cikti/dogrula_${{ matrix.ad }}.json
 
-      - name: "4b) FINAL doğrula (yalnız elle tetiklenince, kod verildiyse)"
+      # [tur5 2026-11-02] README ve sayfadaki komutların aynısı, işletim sistemine göre iki biçimde: macOS/Linux bash
+      # (\ ile satır bölme, düz bölü), Windows PowerShell (` ile satır bölme, ters bölü). Önce bağımsız JS kontrolü.
+      - name: "4b) FINAL doğrula, bash (yalnız elle tetiklenince, kod verildiyse)"
         id: final
-        if: always() && github.event_name == 'workflow_dispatch' && inputs.kod != ''
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.kod != '' && runner.os != 'Windows'
         shell: bash
         env:
           KOD: ${{ inputs.kod }}
           DUYURU: ${{ inputs.duyuru_sha }}
           YAYIN: ${{ inputs.yayin_utc }}
         run: |
+          node oyun/bagimsiz/kontrol.mjs veri/beacon.json veri/taahhut.json veri/penalty_log.json veri/beyin_kararlari.json \
+            > ci_cikti/final_js_${{ matrix.ad }}.txt
+          grep -q "BAĞIMSIZ KONTROL: TUTUYOR" ci_cikti/final_js_${{ matrix.ad }}.txt
           python -I araclar/dogrula.py --taahhut veri/taahhut.json --config oyun/config_final.json \
             --log veri/penalty_log.json --karar veri/beyin_kararlari.json --beacon-dosya veri/beacon.json \
             --kod "$KOD" --duyuru-sha "$DUYURU" --yayin-utc "$YAYIN" --beklenen final \
             --cikti ci_cikti/final_verify_${{ matrix.ad }}.txt --json ci_cikti/final_${{ matrix.ad }}.json
+
+      - name: "4b) FINAL doğrula, PowerShell (yalnız elle tetiklenince, kod verildiyse)"
+        id: final_win
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.kod != '' && runner.os == 'Windows'
+        shell: pwsh
+        env:
+          KOD: ${{ inputs.kod }}
+          DUYURU: ${{ inputs.duyuru_sha }}
+          YAYIN: ${{ inputs.yayin_utc }}
+        run: |
+          node oyun\bagimsiz\kontrol.mjs veri\beacon.json veri\taahhut.json veri\penalty_log.json veri\beyin_kararlari.json | Out-File -Encoding utf8 ci_cikti\final_js_${{ matrix.ad }}.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -I araclar\dogrula.py --taahhut veri\taahhut.json --config oyun\config_final.json `
+            --log veri\penalty_log.json --karar veri\beyin_kararlari.json --beacon-dosya veri\beacon.json `
+            --kod "$env:KOD" --duyuru-sha "$env:DUYURU" --yayin-utc "$env:YAYIN" --beklenen final `
+            --cikti ci_cikti\final_verify_${{ matrix.ad }}.txt --json ci_cikti\final_${{ matrix.ad }}.json
 
       - name: "tanı: cython hedefi (beyin_model.py'nin seçimi), süre ve ilk fark"
         if: always()

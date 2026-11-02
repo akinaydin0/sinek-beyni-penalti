@@ -6,8 +6,8 @@ PROVA9B (varsayılan; bu depodaki tatbikat, beklenen sonuç "PROVA DOĞRULANDI")
     Windows (PowerShell):  py -3.12 -I araclar\\dogrula.py
     macOS / Linux:         python3.12 -I araclar/dogrula.py
 
-Final (deney günü; --kod, --duyuru-sha ve --yayin-utc değerlerini KENDİN dış kaynaktan oku:
-sabitlenmiş gönderi, duyuru, story / OpenTimestamps; git commit tarihi kanıt DEĞİL):
+Final ([tur5 2026-11-02] --kod, --duyuru-sha ve --yayin-utc değerlerini KENDİN dış kaynaktan oku: üçü de Bölüm 1
+reel'inin altındaki Instagram yorumunda, zaman o yorumun saati; git commit tarihi kanıt DEĞİL):
     python3.12 -I araclar/dogrula.py --taahhut veri/taahhut.json --config oyun/config_final.json \\
         --log veri/penalty_log.json --karar veri/beyin_kararlari.json --beacon-dosya veri/beacon.json \\
         --kod <TAM 64 karakter SHA-256> --duyuru-sha <duyuru özeti> --yayin-utc <2026-10-23T12:04:00Z>
@@ -61,8 +61,9 @@ def main():
     ap.add_argument("--log")
     ap.add_argument("--karar")
     ap.add_argument("--beacon-dosya")
-    ap.add_argument("--kod", help="TAM 64 karakter taahhüt SHA-256 (sabitlenmiş gönderiden)")
-    ap.add_argument("--duyuru-sha", help="bir gün önce duyurulan DUYURU ÖZETİ")
+    # [tur5 2026-11-02] bu koşunun gerçek kaynağı: Bölüm 1 reel'inin altındaki yorum (bir gün önce duyuru yapılmadı)
+    ap.add_argument("--kod", help="TAM 64 karakter taahhüt SHA-256 (Bölüm 1 reel'inin altındaki yorumdan)")
+    ap.add_argument("--duyuru-sha", help="DUYURU ÖZETİ (aynı yorumdaki 'Kurallar + kod özeti' satırı)")
     ap.add_argument("--yayin-utc", help="taahhüdün herkese açık yerde ilk görüldüğü an (UTC, dış kaynaktan)")
     ap.add_argument("--beyin-python", help="beyin ortamının Python'u (varsayılan beyin/.venv)")
     ap.add_argument("--cevrimdisi", action="store_true", help="drand relay'lerine sorma (BLS yine zorunlu)")

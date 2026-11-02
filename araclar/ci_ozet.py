@@ -66,6 +66,14 @@ def main():
             if not r.get("ayni"):
                 farklar.append(f"- {o} şut {r['n']}: spike {r['spike']} (Mac {r['ref_spike']}), ilk fark {r.get('ilk_fark')}")
     md = "## Sinek beyni penaltı: üç işletim sisteminde doğrulama\n\n" + "\n".join(sat) + "\n" + "\n".join(farklar) + "\n"
+    # [tur5 2026-11-02] final dosyalar (elle tetikleme): yalnız durum, sonuç satırı dosyalarda
+    fin = [(o, oku(bul(f"final_{o}.json"))) for o in oslar]
+    if any(d for _, d in fin):
+        md += "\n### Final koşu\n\n| OS | verify sonucu | beyin (Mac'e göre) | verify süresi |\n|---|---|---|---|\n"
+        for o, d in fin:
+            d = d or {}
+            ayni = sum(1 for v in (d.get("beyin") or {}).values() if v.get("ayni"))
+            md += f"| {o} | {d.get('etiket', 'YOK')} (çıkış {d.get('verify_cikis')}) | {ayni}/5 bit bit aynı | {d.get('verify_sure_s', '-')} s |\n"
     print(md)
     if a.cikti:
         with open(a.cikti, "w", encoding="utf-8") as f:
